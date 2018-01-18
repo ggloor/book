@@ -49,7 +49,10 @@ library(knitr)
 ```
 
 \clearpage
+
 ```{r child = 'Chapter2/transforms.Rmd'}
 ```
+
+\clearpage
 
 # References

@@ -134,6 +134,7 @@
 
 \usepackage{amsmath}
 \newcommand{\ith}[1]{ #1\textsuperscript{th}\ }
+\newcommand{\vect}[1]{\vec{\textbf{#1}}}
 
 \begin{document}
 \maketitle
@@ -341,15 +342,17 @@ sample.
 \begin{table}[!h]
 \caption{Example calculation of DM normalization}
 \centering
-\begin{tabular}{r r r r r r r r}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{c r r r r r r r}
 \hline
-Part & $\vec{\textbf{s}}_1$ & $\vec{\textbf{s}}_2$ & $\vec{\textbf{g}}$ & $\vec{\textbf{r}}_1$ & $\vec{\textbf{r}}_2$ & $\vec{\textbf{d}}_1$ & $\vec{\textbf{d}}_2$ \\ \hline \hline
+Feature & $\vec{\textbf{s}}_1$ & $\vec{\textbf{s}}_2$ & $\vec{\textbf{g}}$ & $\vec{\textbf{r}}_1$ & $\vec{\textbf{r}}_2$ & $\vec{\textbf{d}}_1$ & $\vec{\textbf{d}}_2$ \\ \hline \hline
 F1 & 1500 & 1000 & 1224.7 & 1.22 & {\bf 0.81} & 1219.5 & 1234.6\\
 F2 & 25 & 15 & 19.4 & 1.29 & 0.77 & 20.3 & 18.5 \\
 F3 & 1000 & 500 & 707.1 & 1.41 & 0.71 & 813.0 & 617.3 \\
 F4 & 75 & 50 & 61.2 & {\bf 1.23} &  0.82 & 61.0 & 61.7 \\
 F5 & 500 & 1500 & 866.0 & 0.58 & 1.73 & 406.5 & 1851.9\\ \hline
 \end{tabular}
+}
 \label{tab:des}
 \end{table}
 
@@ -460,7 +463,7 @@ Note that this does not mean that the read depth is irrelevant since
 more reads for a sample translate into greater precision when estimating
 the proportions (Fernandes et al., 2013).
 
-\section{Distance metrics}
+\section{Comparing Transforms and Distances}
 
 The microbiome and transcriptome literature are replete with distance
 metrics, and it is common to find that a single study will use several
@@ -517,7 +520,12 @@ are instead showing the general properties of the distance metrics.
 \NormalTok{L <-}\StringTok{ }\KeywordTok{rnorm}\NormalTok{(}\DecValTok{50}\NormalTok{, }\DataTypeTok{mean=}\DecValTok{10000}\NormalTok{, }\DataTypeTok{sd=}\DecValTok{2500}\NormalTok{)}
 \NormalTok{G <-}\StringTok{ }\KeywordTok{rnorm}\NormalTok{(}\DecValTok{50}\NormalTok{, }\DataTypeTok{mean=}\DecValTok{1000}\NormalTok{, }\DataTypeTok{sd=}\DecValTok{250}\NormalTok{)}
 \NormalTok{A <-}\StringTok{ }\KeywordTok{rnorm}\NormalTok{(}\DecValTok{50}\NormalTok{, }\DataTypeTok{mean=}\DecValTok{5}\NormalTok{, }\DataTypeTok{sd=}\FloatTok{2.5}\NormalTok{)}
-\NormalTok{rand.data <-}\StringTok{ }\KeywordTok{cbind}\NormalTok{(T,L,G,A)}
+\NormalTok{ran.dat <-}\StringTok{ }\KeywordTok{cbind}\NormalTok{(T,L,G,A)}
+\NormalTok{ran.dat[ran.dat <=}\DecValTok{0} \NormalTok{] <-}\StringTok{ }\FloatTok{0.1}
+
+\NormalTok{dist.ran.dat <-}\StringTok{ }\KeywordTok{as.matrix}\NormalTok{(}\KeywordTok{dist}\NormalTok{(}
+    \NormalTok{ran.dat, }\DataTypeTok{method=}\StringTok{"euclidian"}\NormalTok{))}
+
 \KeywordTok{par}\NormalTok{(}\DataTypeTok{mfrow=}\KeywordTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{3}\NormalTok{), }\DataTypeTok{pch=}\DecValTok{19}\NormalTok{, }\DataTypeTok{col=}\KeywordTok{rgb}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{,}\FloatTok{0.5}\NormalTok{),}
     \DataTypeTok{cex=}\FloatTok{1.5}\NormalTok{, }\DataTypeTok{cex.lab=}\FloatTok{1.5}\NormalTok{)}
 
@@ -543,18 +551,24 @@ from a count to a proportion.
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{rand.data.prop <-}\StringTok{ }\KeywordTok{t}\NormalTok{(}\KeywordTok{apply}\NormalTok{(rand.data, }\DecValTok{1}\NormalTok{,}
+\NormalTok{ran.dat.prop <-}\StringTok{ }\KeywordTok{t}\NormalTok{(}\KeywordTok{apply}\NormalTok{(ran.dat, }\DecValTok{1}\NormalTok{,}
     \NormalTok{function(x) x/}\KeywordTok{sum}\NormalTok{(x)))}
 
-\KeywordTok{par}\NormalTok{(}\DataTypeTok{mfrow=}\KeywordTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{3}\NormalTok{), }\DataTypeTok{pch=}\DecValTok{19}\NormalTok{, }\DataTypeTok{col=}\KeywordTok{rgb}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{,}\FloatTok{0.5}\NormalTok{),}
+\NormalTok{dist.ran.dat.prop <-}\StringTok{ }\KeywordTok{as.matrix}\NormalTok{(}\KeywordTok{dist}\NormalTok{(}
+    \NormalTok{ran.dat.prop, }\DataTypeTok{method=}\StringTok{"euclidian"}\NormalTok{))}
+
+\KeywordTok{par}\NormalTok{(}\DataTypeTok{mfrow=}\KeywordTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{2}\NormalTok{), }\DataTypeTok{pch=}\DecValTok{19}\NormalTok{, }\DataTypeTok{col=}\KeywordTok{rgb}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{,}\FloatTok{0.5}\NormalTok{),}
     \DataTypeTok{cex=}\FloatTok{1.5}\NormalTok{, }\DataTypeTok{cex.lab=}\FloatTok{1.5}\NormalTok{)}
 
-\KeywordTok{plot}\NormalTok{(rand.data.prop[,}\StringTok{"T"}\NormalTok{],rand.data.prop[,}\StringTok{"L"}\NormalTok{],}
+\KeywordTok{plot}\NormalTok{(ran.dat.prop[,}\StringTok{"T"}\NormalTok{],ran.dat.prop[,}\StringTok{"L"}\NormalTok{],}
     \DataTypeTok{xlab=}\StringTok{"T.p"}\NormalTok{, }\DataTypeTok{ylab=}\StringTok{"L.p"}\NormalTok{)}
-\KeywordTok{plot}\NormalTok{(rand.data.prop[,}\StringTok{"L"}\NormalTok{],rand.data.prop[,}\StringTok{"G"}\NormalTok{],}
+\KeywordTok{plot}\NormalTok{(ran.dat.prop[,}\StringTok{"L"}\NormalTok{],ran.dat.prop[,}\StringTok{"G"}\NormalTok{],}
     \DataTypeTok{xlab=}\StringTok{"L.p"}\NormalTok{, }\DataTypeTok{ylab=}\StringTok{"G.p"}\NormalTok{)}
-\KeywordTok{plot}\NormalTok{(rand.data.prop[,}\StringTok{"G"}\NormalTok{],rand.data.prop[,}\StringTok{"A"}\NormalTok{],}
+\KeywordTok{plot}\NormalTok{(ran.dat.prop[,}\StringTok{"G"}\NormalTok{],ran.dat.prop[,}\StringTok{"A"}\NormalTok{],}
     \DataTypeTok{xlab=}\StringTok{"G.p"}\NormalTok{, }\DataTypeTok{ylab=}\StringTok{"A.p"}\NormalTok{)}
+\KeywordTok{plot}\NormalTok{(dist.ran.dat[}\DecValTok{1}\NormalTok{,], dist.ran.dat.prop[}\DecValTok{1}\NormalTok{,],}
+    \DataTypeTok{xlab=}\StringTok{"S1 vs all"}\NormalTok{, }\DataTypeTok{ylab=}\StringTok{"S1.p vs all.p"}\NormalTok{,}
+    \DataTypeTok{main=}\StringTok{"Distance"}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
@@ -568,7 +582,45 @@ data are converted to proportions. This is because the data are now not
 real numbers, but are instead proportions and are constrained by the
 arbitrary sum of 1: \emph{the data are now compositional data}.
 
-\subsection{Euclidian Distance of DM transformation}\subsection{Bray-Curtis Dissimilarity}\subsection{Jensen-Shannon Divergence}\subsection{Aitchison Distance}\section{Transformations and distance}
+\subsection{Euclidian Distance of DM transformation}
+
+The DM scaling transformation is a change in the scale of the sample
+vector \(\vect{j}\), where each sample is scaled by a different amount.
+This has the desirable property that it \emph{can} restore the a
+conversion of each sample from a count to a proportion.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ran.dat.DM <-}\StringTok{ }\KeywordTok{t}\NormalTok{(}\KeywordTok{des.norm}\NormalTok{(}\KeywordTok{t}\NormalTok{(ran.dat.prop)))}
+\NormalTok{dist.ran.dat.DM <-}\StringTok{ }\KeywordTok{as.matrix}\NormalTok{(}\KeywordTok{dist}\NormalTok{(}
+    \NormalTok{ran.dat.DM, }\DataTypeTok{method=}\StringTok{"euclidian"}\NormalTok{))}
+
+\KeywordTok{par}\NormalTok{(}\DataTypeTok{mfrow=}\KeywordTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{2}\NormalTok{), }\DataTypeTok{pch=}\DecValTok{19}\NormalTok{, }\DataTypeTok{col=}\KeywordTok{rgb}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{,}\FloatTok{0.5}\NormalTok{),}
+    \DataTypeTok{cex=}\FloatTok{1.5}\NormalTok{, }\DataTypeTok{cex.lab=}\FloatTok{1.5}\NormalTok{)}
+
+\KeywordTok{plot}\NormalTok{(ran.dat.DM[,}\StringTok{"T"}\NormalTok{],ran.dat.DM[,}\StringTok{"L"}\NormalTok{],}
+    \DataTypeTok{xlab=}\StringTok{"T.dm"}\NormalTok{, }\DataTypeTok{ylab=}\StringTok{"L.dm"}\NormalTok{)}
+\KeywordTok{plot}\NormalTok{(ran.dat.DM[,}\StringTok{"L"}\NormalTok{],ran.dat.DM[,}\StringTok{"G"}\NormalTok{],}
+    \DataTypeTok{xlab=}\StringTok{"L.dm"}\NormalTok{, }\DataTypeTok{ylab=}\StringTok{"G.dm"}\NormalTok{)}
+\KeywordTok{plot}\NormalTok{(ran.dat.DM[,}\StringTok{"G"}\NormalTok{],ran.dat.DM[,}\StringTok{"A"}\NormalTok{],}
+    \DataTypeTok{xlab=}\StringTok{"G.dm"}\NormalTok{, }\DataTypeTok{ylab=}\StringTok{"A.dm"}\NormalTok{)}
+\KeywordTok{plot}\NormalTok{(dist.ran.dat[}\DecValTok{1}\NormalTok{,], dist.ran.dat.DM[}\DecValTok{1}\NormalTok{,],}
+    \DataTypeTok{xlab=}\StringTok{"S1 vs all"}\NormalTok{, }\DataTypeTok{ylab=}\StringTok{"S1.dm vs all.dm"}\NormalTok{,}
+    \DataTypeTok{main=}\StringTok{"Distance"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{main_files/figure-latex/R_block_random_DM-1.pdf}
+
+\texttt{plot\_ly(x=ran.dat[,"L"], y=ran.dat[,"T"], z=ran.dat[,"G"])}
+
+\texttt{plot\_ly(x=ran.dat.prop[,"L"], y=ran.dat.prop[,"T"], z=ran.dat.prop[,"G"])}
+
+\texttt{plot\_ly(x=ran.dat.DM[,"L"], y=ran.dat.DM[,"T"], z=ran.dat.DM[,"G"])}
+
+\subsection{Bray-Curtis Dissimilarity}\subsection{Jensen-Shannon Divergence}\subsection{Aitchison Distance}
+
+\clearpage
 
 \section*{References}\label{references}
 \addcontentsline{toc}{section}{References}

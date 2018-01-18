@@ -73,15 +73,17 @@ In Table \ref{tab:des} we can see that the median ratio for each sample $\vec{\t
 \begin{table}[!h]
 \caption{Example calculation of DM normalization}
 \centering
-\begin{tabular}{r r r r r r r r}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{c r r r r r r r}
 \hline
-Part & $\vec{\textbf{s}}_1$ & $\vec{\textbf{s}}_2$ & $\vec{\textbf{g}}$ & $\vec{\textbf{r}}_1$ & $\vec{\textbf{r}}_2$ & $\vec{\textbf{d}}_1$ & $\vec{\textbf{d}}_2$ \\ \hline \hline
+Feature & $\vec{\textbf{s}}_1$ & $\vec{\textbf{s}}_2$ & $\vec{\textbf{g}}$ & $\vec{\textbf{r}}_1$ & $\vec{\textbf{r}}_2$ & $\vec{\textbf{d}}_1$ & $\vec{\textbf{d}}_2$ \\ \hline \hline
 F1 & 1500 & 1000 & 1224.7 & 1.22 & {\bf 0.81} & 1219.5 & 1234.6\\
 F2 & 25 & 15 & 19.4 & 1.29 & 0.77 & 20.3 & 18.5 \\
 F3 & 1000 & 500 & 707.1 & 1.41 & 0.71 & 813.0 & 617.3 \\
 F4 & 75 & 50 & 61.2 & {\bf 1.23} &  0.82 & 61.0 & 61.7 \\
 F5 & 500 & 1500 & 866.0 & 0.58 & 1.73 & 406.5 & 1851.9\\ \hline
 \end{tabular}
+}
 \label{tab:des}
 \end{table}
 
@@ -129,7 +131,7 @@ Attempts to `open' the data are doomed to failure because the data cannot be mov
 
 Note that this does not mean that the read depth is irrelevant since more reads for a sample translate into greater precision when estimating the proportions [@fernandes:2013].
 
-\section{Distance metrics}
+\section{Comparing Transforms and Distances}
 
 The microbiome and transcriptome literature are replete with distance metrics, and it is common to find that a single study will use several distance metrics to report their findings. This is a problem since it shows that practitioners are unsure of the reason to use a metric, and the use of more than one metric leads to data dredging and research degrees of freedom---both of which increase the chances of finding false positives in the data to a surety.
 
@@ -149,13 +151,19 @@ T <- rnorm(50, mean=100, sd=25)
 L <- rnorm(50, mean=10000, sd=2500)
 G <- rnorm(50, mean=1000, sd=250)
 A <- rnorm(50, mean=5, sd=2.5)
-rand.data <- cbind(T,L,G,A)
+ran.dat <- cbind(T,L,G,A)
+ran.dat[ran.dat <=0 ] <- 0.1
+
+dist.ran.dat <- as.matrix(dist(
+    ran.dat, method="euclidian"))
+
 par(mfrow=c(1,3), pch=19, col=rgb(0,0,0,0.5),
     cex=1.5, cex.lab=1.5)
 
 plot(T,L)
 plot(L,G)
 plot(G,A)
+
 
 ```
 
@@ -165,27 +173,79 @@ Plotting three of the possible combinations, we can see that the features are es
 
 The TSS scaling transformation is simply a conversion of each sample from a count to a proportion.
 
-```{r R_block_random_prop, fig.height=6, fig.width=15, results="show", echo=TRUE, message=F, error=F, warnings=F}
+```{r R_block_random_prop, fig.height=16, fig.width=15, results="show", echo=TRUE, message=F, error=F, warnings=F}
 
-rand.data.prop <- t(apply(rand.data, 1,
+ran.dat.prop <- t(apply(ran.dat, 1,
     function(x) x/sum(x)))
 
-par(mfrow=c(1,3), pch=19, col=rgb(0,0,0,0.5),
+dist.ran.dat.prop <- as.matrix(dist(
+    ran.dat.prop, method="euclidian"))
+
+par(mfrow=c(2,2), pch=19, col=rgb(0,0,0,0.5),
     cex=1.5, cex.lab=1.5)
 
-plot(rand.data.prop[,"T"],rand.data.prop[,"L"],
+plot(ran.dat.prop[,"T"],ran.dat.prop[,"L"],
     xlab="T.p", ylab="L.p")
-plot(rand.data.prop[,"L"],rand.data.prop[,"G"],
+plot(ran.dat.prop[,"L"],ran.dat.prop[,"G"],
     xlab="L.p", ylab="G.p")
-plot(rand.data.prop[,"G"],rand.data.prop[,"A"],
+plot(ran.dat.prop[,"G"],ran.dat.prop[,"A"],
     xlab="G.p", ylab="A.p")
+plot(dist.ran.dat[1,], dist.ran.dat.prop[1,],
+    xlab="S1 vs all", ylab="S1.p vs all.p",
+    main="Distance")
+
 ```
 
 By comparing the TSS transformed data to the non-transformed data, we can see that the structure of the data itself has changed dramatically. The two most abundant features, G and L, which are uncorrelated in the actual data are now almost perfectly negatively correlated when the same data are converted to proportions. This is because the data are now not real numbers, but are instead proportions and are constrained by the arbitrary sum of 1: \emph{the data are now compositional data}.
 
-
 \subsection{Euclidian Distance of DM transformation}
+
+```{r R_DES_norm, echo=FALSE, results="hide"}
+# gives the same answer as DESeq estimateSizeFactors
+# DESeq normalization method
+# from https://github.com/hbc/knowledgebase/wiki/Count-normalization-methods
+des.norm <- function(data){ # x is a matrix with samples by column
+	# calculate the feature-wise geometric mean
+	G <- apply(data, 1, function(x) exp(mean(log(x)))  )
+	# calculate the ratio between G and all features
+	rat <- apply(data, 2, function(x) x/G)
+	# get the median ratio per sample
+	norm <- apply(rat, 2, median)
+
+	# scale each read by the median ratio per sample
+	norm.counts <- t(apply(data, 1, function(x) x/norm))
+	return(norm.counts)
+}
+```
+
+The DM scaling transformation is a change in the scale of the sample vector $\vect{j}$, where each sample is scaled by a different amount. This has the desirable property that it \emph{can} restore the  a conversion of each sample from a count to a proportion.
+
+```{r R_block_random_DM, fig.height=16, fig.width=15, results="show", echo=TRUE, message=F, error=F, warnings=F}
+
+ran.dat.DM <- t(des.norm(t(ran.dat.prop)))
+dist.ran.dat.DM <- as.matrix(dist(
+    ran.dat.DM, method="euclidian"))
+
+par(mfrow=c(2,2), pch=19, col=rgb(0,0,0,0.5),
+    cex=1.5, cex.lab=1.5)
+
+plot(ran.dat.DM[,"T"],ran.dat.DM[,"L"],
+    xlab="T.dm", ylab="L.dm")
+plot(ran.dat.DM[,"L"],ran.dat.DM[,"G"],
+    xlab="L.dm", ylab="G.dm")
+plot(ran.dat.DM[,"G"],ran.dat.DM[,"A"],
+    xlab="G.dm", ylab="A.dm")
+plot(dist.ran.dat[1,], dist.ran.dat.DM[1,],
+    xlab="S1 vs all", ylab="S1.dm vs all.dm",
+    main="Distance")
+```
+
+\texttt{plot\_ly(x=ran.dat[,"L"], y=ran.dat[,"T"], z=ran.dat[,"G"])}
+
+\texttt{plot\_ly(x=ran.dat.prop[,"L"], y=ran.dat.prop[,"T"], z=ran.dat.prop[,"G"])}
+
+\texttt{plot\_ly(x=ran.dat.DM[,"L"], y=ran.dat.DM[,"T"], z=ran.dat.DM[,"G"])}
+
 \subsection{Bray-Curtis Dissimilarity}
 \subsection{Jensen-Shannon Divergence}
 \subsection{Aitchison Distance}
-\section{Transformations and distance}
