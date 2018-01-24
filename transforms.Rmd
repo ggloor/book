@@ -1,0 +1,573 @@
+# Data transforms in high throughput sequencing
+
+```{r R_DES_norm, echo=FALSE, results="hide"}
+# gives the same answer as DESeq estimateSizeFactors
+# DESeq normalization method
+# from https://github.com/hbc/knowledgebase/wiki/Count-normalization-methods
+des.norm <- function(data){ # x is a matrix with samples by column
+	# calculate the feature-wise geometric mean
+	G <- apply(data, 1, function(x) exp(mean(log(x)))  )
+	# calculate the ratio between G and all features
+	rat <- apply(data, 2, function(x) x/G)
+	# get the median ratio per sample
+	norm <- apply(rat, 2, median)
+
+	# scale each read by the median ratio per sample
+	norm.counts <- t(apply(data, 1, function(x) x/norm))
+	return(norm.counts)
+}
+```
+
+## Sequencing can change the shape of the data:
+
+```{r R_block_constrained_data,echo=FALSE,fig.width=6.5,fig.height=5, fig.cap="\\label={constant} High-throughput sequencing affects the shape of the data differently on constrained and unconstrained data. The two left panels show the absolute number of reads in the input tube for 20 steps where the green and black OTUs are changing abundance by 2-fold each step. The gray, blue and red OTUs are held at a constant number in each step in both cases.  The second column shows the output in proportions (or ppm, or FPKM) after random sampling to a constant sum, as occurs on the sequencer. The orange OTU in the constrained data set is much more abundant than any other, and is changing to maintain a constant number of input molecules.  Samples in the two right columns are the same values plotted on a log scale on the Y-axis for convenience. Note how the constrained data is the same before and after sequencing while the unconstrained data is severely distorted." }
+
+rdirichlet <- function (n, alpha)
+{
+  if(length(n) > 1) n <- length(n)
+  #if(length(n) == 0 || as.integer(n) == 0) return(numeric(0))
+  #n <- as.integer(n)
+  if(n < 0) stop("value(n) can not be negative in rtriang")
+
+  if(is.vector(alpha)) alpha <- t(alpha)
+  l <- dim(alpha)[2]
+  x <- matrix(rgamma(l * n, t(alpha)), ncol = l, byrow=TRUE)  # Gere le recycling
+  return(x / rowSums(x))
+}
+
+num.one = 100 # the number of rare-counts in the dataset
+
+mat.double <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+prop.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+clr.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+
+mat.double.u <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+prop.mat.u <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+clr.mat.u <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+
+# constant sum input
+minimum.count <- 1 # multiplier to set minimum count for in.put
+# non-constant sum input with both one big increase
+in.put <- c(10,20971,1,1,5,10,20,50,100,200,1000) * minimum.count
+
+total.sum <- sum(in.put + 1) * 1000
+
+for(i in 0:19){
+	# constant sum input
+	junk <- in.put * c(2^i, rep(1,num.one + 9))
+	junk[3] <- total.sum - sum(junk)
+	mat.double[i+1,] <- junk
+	prop.mat[i+1,] <- as.numeric( rdirichlet(1, junk) )
+	clr.mat[i+1,] <- log2(prop.mat[i+1,]) - mean(log2(prop.mat[i+1,]))
+}
+
+for(i in 0:19){
+	# non-constant sum input
+	#junk <- in.put * c(2^i, rep(1,num.one + 9))
+	junk <- in.put * c(2^i, rep(1,num.one + 9))
+	mat.double.u[i+1,] <- junk
+	prop.mat.u[i+1,] <- as.numeric( rdirichlet(1, junk) )
+	clr.mat.u[i+1,] <- 2^(log2(prop.mat.u[i+1,]) - mean(log2(prop.mat.u[i+1,])))
+}
+
+par(mfrow=c(2,4), mar=c(4,4,3,1) )
+
+plot(mat.double[,1], pch=20, type="b",  ylim=c(min(mat.double), max(mat.double)), xlab="time point", ylab="raw count")
+title( main="Constrained\ninput", adj=0.5)
+points(mat.double[,2], type="b",pch=21, col="gray")
+points(mat.double[,3], type="b",pch=22, col="orange")
+points(mat.double[,num.one + 10], type="b",pch=23, col="blue")
+points(mat.double[,num.one+4], type="b",pch=24, col="red")
+
+plot(prop.mat[,1], pch=20, type="b", ylim=c(min(prop.mat[,num.one+4]), max(prop.mat)), xlab="time point", ylab="raw proportion")
+title( main="Constrained\nproportion", adj=0.5)
+points(prop.mat[,2], type="b", pch=21, col="gray")
+points(prop.mat[,3], type="b", pch=22, col="orange")
+points(prop.mat[,num.one+10], type="b", pch=23, col="blue")
+points(prop.mat[,num.one+4], type="b", pch=24, col="red")
+
+plot(mat.double[,1], pch=20, type="b", log="y", ylim=c(min(mat.double), max(mat.double)), xlab="time point", ylab="log10 count")
+title( main="Constrained\ninput", adj=0.5)
+points(mat.double[,2], type="b",pch=21, col="gray")
+points(mat.double[,3], type="b",pch=22, col="orange")
+points(mat.double[,num.one + 10], type="b",pch=23, col="blue")
+points(mat.double[,num.one+4], type="b",pch=24, col="red")
+
+plot(prop.mat[,1], pch=20, type="b", ylim=c(min(prop.mat[,num.one+4]), max(prop.mat)), xlab="time point", log="y", ylab="log10 proportion")
+title( main="Constrained\nproportion", adj=0.5)
+points(prop.mat[,2], type="b", pch=21, col="gray")
+points(prop.mat[,3], type="b", pch=22, col="orange")
+points(prop.mat[,num.one+10], type="b", pch=23, col="blue")
+points(clr.mat[,num.one+4], type="b", pch=24, col="red")
+
+# unconstrained
+plot(mat.double.u[,1], pch=20, type="b",  ylim=c(min(mat.double.u), max(mat.double.u)), xlab="time point", ylab="raw count")
+title( main="Unconstrained\ninput", adj=0.5)
+points(mat.double.u[,2], type="b",pch=21, col="gray")
+points(mat.double.u[,num.one + 10], type="b",pch=23, col="blue")
+points(mat.double.u[,num.one+4], type="b",pch=24, col="red")
+
+plot(prop.mat.u[,1], pch=20, type="b", ylim=c(min(prop.mat.u[,num.one+4]), max(prop.mat.u)), xlab="time point", ylab="raw proportion")
+title( main="Unconstrained\nproportion", adj=0.5)
+points(prop.mat.u[,2], type="b", pch=21, col="gray")
+points(prop.mat.u[,num.one+10], type="b", pch=23, col="blue")
+points(prop.mat.u[,num.one+4], type="b", pch=24, col="red")
+
+plot(mat.double.u[,1], pch=20, type="b", log="y", ylim=c(min(mat.double.u), max(mat.double.u)), xlab="time point", ylab="log10 count")
+title( main="Unconstrained\ninput", adj=0.5)
+points(mat.double.u[,2], type="b",pch=21, col="gray")
+points(mat.double.u[,num.one + 10], type="b",pch=23, col="blue")
+points(mat.double.u[,num.one+4], type="b",pch=24, col="red")
+
+
+plot(prop.mat.u[,1], pch=20, type="b", ylim=c(min(prop.mat.u[,num.one+4]), max(prop.mat.u)),log="y", xlab="time point", ylab="log10 proportion")
+title( main="Unconstrained\nproportion", adj=0.5)
+points(prop.mat.u[,2], type="b", pch=21, col="gray")
+points(prop.mat.u[,num.one+10], type="b", pch=23, col="blue")
+points(prop.mat.u[,num.one+4], type="b", pch=24, col="red")
+```
+
+
+It is  assumed that the output from a high-throughput sequencing experiment represents in some way the underlying abundance of the input DNA molecules. The input counts panels on the left side of Figure \ref{constant} shows two  idealized experiments. The top left shows the case where the total count of all nucleic acid species in the input is constrained, the bottom left illustrates the case where the total count is unconstrained. These are modelled as a time series, but any  process would produce the same results.
+
+Constrained datasets  occur if the increase or decrease in any component is exactly compensated by the increase or decrease of one or more others. Here the total  count  remains constant across all experimental conditions. Examples of constrained datasets would include  allele frequencies at a locus where the total has to be 1, and the RNA-seq where the induction of genes occurs in a steady-state cell culture. In this case, any process, such as sequencing that generates a proportion simply recapitulates the data with sampling error. The unspoken assumption in most high throughput experimental designs is that this assumption is true---\emph{ it is not!}
+
+An unconstrained dataset  results if the total count is free to vary. Examples of unconstrained datasets would include ChIP-Seq, RNA-seq where we are examining two  different conditions or cell populations, metagenomics, etc. Importantly, 16S rRNA gene sequencing analyses are almost always free to vary; that is, the total bacterial load is rarely constant in an environment. Thus, the unconstrained data type would be the predominant type of data that would be expected.
+
+The relative abundance panels on the right side of Figure \ref{constant} shows the result of random sampling with a defined maximum value in these two types of datasets. This random sampling reflects the data that results from high throughput sequencing where the total number of reads is constrained by the instrument capacity. The data is represented as a proportion, but  scales to parts per million or parts per billion  without changing the shape. Here we see that the shape of the data after sequencing is very similar to the input data in the case of constrained, but is very different in the case of non-constrained data. In the unconstrained dataset, observe how the blue and red features appear to be constant over the first 10 time points, but then appear to decrease in abundance at later time points. Conversely, the black feature appears to increase linearly at early time points, but appears to become constant at  late time points. Obviously, we would misinterpret what is happening if we compared early and late timepoints in the unconstrained dataset. It is also worth noting how the act of random sampling makes the proportional abundance of the rare OTU species uncertain in both the constrained and unconstrained data, but has little effect on the relative apparent effect on the relative abundance of OTUs with high counts.
+
+We assume that the abundance of each input DNA species that is observed after sequencing reflects a random sample of the input  molecules. We can see that  that this may indeed be the case if the total number of  molecules in the input sample is constant. This constraint would be met if, for example, an increase in one or more DNA species was balanced with an equivalent decrease in one or more different species. Such a constraint would be met In the figure, the red and blue OTU sequences are held constant in each sample, the green OTU is decreasing by 2 fold and the black OTU is increasing by 2 fold in each subsequent sample. The abundance of the orange OTU is adjusted such that the total sum of the OTU sequences in the input is held constant. Here it can be seen that the input counts and the relative abundance of each species following sequence have similar shapes, with the exception that the rarest species display significant variability because of random sampling.
+
+## Commonly used transformations are misleading
+
+Current practice is to examine the datasets using `relative abundance' values, that is, the proportional abundance of the OTUs either before or after normalization for read depth. This approach is equivalent to examining the input unconstrained data of the type seen in Figure \ref{constant} in the relative abundance sample space in the bottom right panel of the figure. This approach will obviously lead to incorrect assumptions in at least some cases. For example, depending upon the steps chosen to compare, the blue OTU, that has constant counts in the input, will be seen to either increase or decrease in abundance. Conversely, the green OTU, that is always decreasing in abundance will be seen to be constant if comparing samples 1-8.
+
+The ecological literature offers many different transformations for such data, often as a way of making the data appear `more normal'. Figure  \ref{transform} shows the results of five such transformations.
+
+- The frequency transform divides the each OTU value by the largest OTU count, and then divides the resulting values by the number of OTUs in the sample that had non-zero counts.
+
+- The Hellinger transformation that takes the square root of the relative abundance (proportion) value.
+
+- The range transform standardizes the values to have a range from 0 to 1. OTUs with 0 counts are set to 0.
+
+- The standardize transform standardizes the values for each sample to have a mean of 0 and a variance of 1.
+
+- The log transform divides each OTU count in a sample by the minimum non-zero count value, then takes the logarithm of the resulting value and adds 1. Counts of 0 are assigned a value of 0 to avoid taking the logarithm of 0.
+
+- The centred log-ratio transformation divides the OTU values by the geometric mean OTU abundance, and then takes the logarithm.
+
+It is obvious that the first four transformations result in data that badly mis-represents the shape of the actual input data. The log transformation, however results in the shape of the output data approximating the shape of the input data, except that the uncertainty of each data point is large. The ratio transform his transformation accurately recapitulates the shape of the original input data, and more accurately represents the uncertainty of each data point.
+
+```{r R_block_transformations,echo=FALSE,fig.width=6,fig.height=4,warning=F,message=F, fig.cap="\\label{transforms} The effect of ecological transformations on unconstrained high throughput sequencing datasets. Data generated as in Figure \ref{constant} were transformed with five different approaches implemented in the vegan ecological analysis package, and with the entered log-ratio approach suggested by Aitchison."}
+
+#RAW DATA ON MBQC DISK
+#Original script at: "/Users/ggloor/Documents/0_techrep_blog/analysis_joint
+
+library(vegan)
+rdirichlet <- function (n, alpha)
+{
+  if(length(n) > 1) n <- length(n)
+  #if(length(n) == 0 || as.integer(n) == 0) return(numeric(0))
+  #n <- as.integer(n)
+  if(n < 0) stop("value(n) can not be negative in rtriang")
+
+  if(is.vector(alpha)) alpha <- t(alpha)
+  l <- dim(alpha)[2]
+  x <- matrix(rgamma(l * n, t(alpha)), ncol = l, byrow=TRUE)  # Gere le recycling
+  return(x / rowSums(x))
+}
+
+num.one = 100
+
+mat.double <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+prop.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+clr.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+hel.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+log.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+freq.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+range.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+pa.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+
+# non-constant sum input
+minimum.count <- 1 # multiplier to set minimum count for in.put
+# non-constant sum input with both one big increase and one big decrease
+in.put <- c(10,20971,1,1,5,10,20,50,100,200,1000) * minimum.count
+total.sum <- sum(in.put + 1) * 1000
+
+for(i in 0:19){
+	# non-constant sum input
+	#junk <- in.put * c(2^i, rep(1,num.one + 9))
+	junk <- in.put * c(2^i, rep(1 ^ i,num.one + 9))
+	mat.double[i+1,] <- junk
+	prop.mat[i+1,] <- as.numeric( rdirichlet(1, junk) )
+	clr.mat[i+1,] <- 2^(log2(prop.mat[i+1,]) - mean(log2(prop.mat[i+1,])))
+	hel.mat[i+1,] <- sqrt(prop.mat[i+1,])
+	freq.mat[i+1,] <- decostand(prop.mat[i+1,], method="freq")
+	log.mat[i+1,] <-  2^(decostand(prop.mat[i+1,], method="log")) #this is the divide by the minimum transformation from decostand that precedes taking the logarithm
+	range.mat[i+1,] <- decostand(prop.mat[i+1,], method="range")
+	pa.mat[i+1,] <- 10^decostand(prop.mat[i+1,], method="standardize")
+}
+
+par(mfrow=c(2,3), mar=c(4,4,3,1))
+
+plot(freq.mat[,1], pch=20, type="b", log="y", ylim=c(min(freq.mat[,num.one+4]), max(freq.mat)),main="frequency", xlab="time point", ylab="value")
+#points(freq.mat[,2], type="b", pch=19, col="green")
+#points(freq.mat[,3], type="b", pch=19, col="orange")
+points(freq.mat[,num.one+10], type="b", pch=23, col="blue")
+points(freq.mat[,num.one+4], type="b", pch=24, col="red")
+
+plot(hel.mat[,1], pch=20, type="b", log="y", ylim=c(min(hel.mat[,num.one+4]), max(hel.mat)),main="hellinger", xlab="time point", ylab="value")
+#points(hel.mat[,2], type="b", pch=19, col="green")
+#points(hel.mat[,3], type="b", pch=19, col="orange")
+points(hel.mat[,num.one+10], type="b", pch=23, col="blue")
+points(hel.mat[,num.one+4], type="b", pch=24, col="red")
+
+plot(range.mat[,1], pch=20, type="b", log="y", ylim=c(min(range.mat[,num.one+4]), max(range.mat)),main="range ", xlab="time point", ylab="value")
+#points(range.mat[,2], type="b", pch=19, col="green")
+#points(range.mat[,3], type="b", pch=19, col="orange")
+points(range.mat[,num.one+10], type="b", pch=23, col="blue")
+points(range.mat[,num.one+4], type="b", pch=24, col="red")
+
+plot(pa.mat[,1], pch=20, type="b", log="y", ylim=c(min(pa.mat[,num.one+4]), max(pa.mat)),main="standardize", xlab="time point", ylab=" value")
+#points(pa.mat[,2], type="b", pch=19, col="green")
+#points(pa.mat[,3], type="b", pch=19, col="orange")
+points(pa.mat[,num.one+10], type="b", pch=23, col="blue")
+points(pa.mat[,num.one+4], type="b", pch=24, col="red")
+
+plot(log2(log.mat[,1]), pch=20, type="b", log="y", ylim=c(log2(min(log.mat[,num.one+4])), log2(max(log.mat))),main="log", xlab="time point", ylab="value")
+#points(log.mat[,2], type="b", pch=19, col="green")
+#points(log.mat[,3], type="b", pch=19, col="orange")
+points(log2(log.mat[,num.one+10]), type="b", pch=23, col="blue")
+points(log2(log.mat[,num.one+4]), type="b", pch=24, col="red")
+
+plot(log2(clr.mat[,1]), pch=20, type="b",  ylim=c(log2(min(clr.mat[,num.one+4])), log2(max(clr.mat))),main="clr", xlab="time point", ylab=" value")
+#points(clr.mat[,2], type="b", pch=19, col="green")
+#points(clr.mat[,3], type="b", pch=19, col="orange")
+points(log2(clr.mat[,num.one+10]), type="b", pch=19, col="blue")
+points(log2(clr.mat[,num.one+4]), type="b", pch=19, col="red")
+```
+
+
+Fundamentally, the goal of any experiment is to determine something about the environment that was sampled. After all, we are attempting to use HTS to determine something of interest about the underlying environment. Thus, we need to have some equivalence between the samples before sequencing and the samples after sequencing. The simplest case would be that there would be a linear relationship between the data that we could obtain from the environment, and the data that was actually collected by HTS.
+
+We can think about the underlying data on a univariate basis; do the features across all samples follow a Gaussian distribution? or do they follow some unknown distribution? If so, can we transform the data to approximate a Gaussian distribution? This mode of thinking leads to the use of square-root, arcsine or Hellinger transformations since they appear to transform the data into a distribution that can be interpreted. However, as we shall see below, none of these univariate transformations  is suitable.
+
+It is more desirable to think about HTS data in a multivariate way as a `composition'  because the total count of molecules in the underlying sample (the environment) is always a confounding variable [@Loven:2012aa]. This way of thinking led to multivariate data normalizations.
+
+We will set up a random dataset, composed of four features (T, L, G, A) and 50 random samples with mean values of 100 tigers, 10000 ladybugs, 1000 gnus and 5 space aliens. The features will be drawn from a Normal distibution, although a random uniform distribution or any other distribution will give the same results. We are not, at this point, attempting to mimic a distribution found in a real dataset, but are instead showing the general properties of the distance metrics, and how those metrics compare when calculated on numerical data, obtained as counts in the environment, or on proportional data, obtained as relative abundances after sequencing.
+
+
+```{r R_block_random, fig.height=6, fig.width=15, results="show", echo=TRUE, message=F, error=F, warnings=F, fig.cap="\\label{numbers} Plot of Ladybugs vs. Tigers, Gnus vs. Ladybugs and Aliens vs. Gnus for simulated random Normal data."}
+set.seed(13)
+T <- rnorm(50, mean=100, sd=25)
+L <- rnorm(50, mean=10000, sd=2500)
+G <- rnorm(50, mean=1000, sd=250)
+A <- rnorm(50, mean=5, sd=2.5)
+ran.dat <- cbind(T,L,G,A)
+ran.dat[ran.dat <=0 ] <- 0.1
+
+dist.ran.dat <- as.matrix(dist(
+    ran.dat, method="euclidian"))
+
+par(mfrow=c(1,3), pch=19, col=rgb(0,0,0,0.5),
+    cex=1.5, cex.lab=1.5)
+
+plot(T,L)
+plot(L,G)
+plot(G,A)
+
+```
+
+Figure \ref{numbers} shows the relationships between three features in the actual dataset. We can see that the features are randomly normally distributed and uncorrelated in the scatter plots. Most tools attempt to infer something about this numerical dataset. For this to work, the data transforms must be linearly related in some way to this underlying data.
+
+Let us see which, if any of the transforms fulfills this basic requirement.
+
+## Notation
+
+We use the following notation throughout. Column vectors contain samples $\vec{\textbf{s}}$ and row vectors contain features $\vec{\textbf{f}}$.  There are $D$ features and $n$ samples, thus the data are contained in matrix $M = D \times n$. The $j^{th}$ sample is denoted as $s_{j}$, the $i^{th}$ feature of all samples is denoted as $s_{i-}$, and the value for the $i^{th}$ feature of the $j^{th}$ sample is referred to as $s_{ij}$.
+
+## Simple proportional type transformations
+
+The simplest normalization is to determine the relative abundance (rAB), or proportion, of the \ith{i} feature in a sample as in Eq. \ref{eq:rab}. This normalization is also referred to as the total sum scaling (TSS) normalization.
+
+\begin{equation}
+	rAB_{i} = \frac{s_{i}}{\sum{\vec{\textbf{s}}}}
+	\label{eq:rab}
+\end{equation}
+
+The rAB measure requires only the read count observed for a the feature $s_i$ and the total read count of the sample $\sum{\vec{\textbf{s}}}$. Since this measure is generally skewed, it is often log-transformed prior to analysis.
+
+```{r R_block_TSS, fig.height=6, fig.width=15, results="show", echo=TRUE, message=F, error=F, warnings=F,fig.cap="\\label{numbers} Plot of Ladybugs vs. Tigers, Gnus vs. Ladybugs and Aliens vs. Gnus for simulated random Normal data as proportions."}
+ran.dat.prop <- t(apply(ran.dat, 1,
+    function(x) x/sum(x)))
+par(mfrow=c(1,3), pch=19, col=rgb(0,0,0,0.5),
+    cex=1.5, cex.lab=1.5)
+plot(ran.dat.prop[,"T"],ran.dat.prop[,"L"],
+    xlab="T.p", ylab="L.p")
+plot(ran.dat.prop[,"L"],ran.dat.prop[,"G"],
+    xlab="L.p", ylab="G.p")
+plot(ran.dat.prop[,"G"],ran.dat.prop[,"A"],
+    xlab="G.p", ylab="A.p")
+
+```
+
+By comparing the proportions to the non-transformed data, we can see that the structure of the data itself has changed dramatically. The two most abundant features, G and L, which are uncorrelated in the actual data are now almost perfectly negatively correlated when the same data are converted and plotted as proportions, G.p vs L.p. This is because the data are now not real numbers, but are instead proportions and are constrained by the arbitrary sum of 1: \emph{the data are now compositional data}.
+
+A further normalization was proposed early in the RNA-seq field where the reads per kilobase per million mapped (RPKM)[@Mortazavi:2008] method was used initially to place the read counts for each feature within and between samples on a common scale.
+
+For this we also needed to know a scaling factor $K$, and the length of the feature $L_i$; from this, the RPKM value for the \ith{i} feature for each sample was calculated as in Eq. \ref{eq:rpkm}.
+
+\begin{equation}
+	RPKM_{i} = \frac{K \cdot C_{i} }{\sum{C} \cdot L_{i}}
+	\label{eq:rpkm}
+\end{equation}
+
+When the equation is placed in this form it is obvious that RPKM is simply a scaled rAB where each rAB value is divided by its length and multiplied by a constant. In compositional terms, RPKM is an unclosed perturbation of the original data; the data appear to be real numbers, but are actually proportions multiplied by a constant.
+
+Further research suggested that RPKM was not appropriate for comparison of features between samples. The goal of RPKM was to `count' reads per feature per cell.  In the original paper the authors supplied an equivalence and an RPKM value of 1 RPKM equalled one transcript in each cell in the C2C12 cell line, but in liver cells, a value of 3 RPKM equalled one transcript per cell. Thus, from the start, this normalization was unable to normalize between-condition read counts.
+
+The transcripts per million (TPM) normalization was advocated next [@Li:2010aa]. Patcher [@Pachter:2011] showed the equivalence between RPKM and TPM, and in compositional terms TPM is simply a compositionally closed form of RPKM multiple by a constant as in Eq. \ref{eq:tpm}.
+
+
+\begin{equation}
+	TPM_{i} = \frac{RPKM_i}{\sum{RPKM}} \cdot K
+	\label{eq:tpm}
+\end{equation}
+
+
+The rAB, RPKM and TPM normalizations are thus all very similar, differing only in the scaling of individual features, and do not allow normalization between conditions unless the samples in the environment contain \emph{exactly} the same input number of RNA molecules. In a very real sense, these normalizations deliver proportional data, scaled or perturbed to make the data appear as if they are numerical, and not proportional.
+
+A related transformation is `rarefaction' or subsampling without replacement to a defined per-sample read count. This transformation was widely used in the 16S rRNA gene sequencing field. Rarefaction to a common read count gives a composition, that is scaled such that low count features often are replaced by 0 values [@McMurdie:2014a]. For this reason, rarefaction has now been largely replaced with the median of ratios method described below.
+
+## The median of ratios count normalization
+
+Further work found that none of these methods were appropriate, since the read count per sample continued to confound the analyses [@Loven:2012aa]. Thus, the scaling normalization methods were proposed [@Robinson:2010a]. There are two main scaling normalizations, but both operate on the common assumption that by normalizing all counts in a sample to a per-sample midpoint value the normalization can impute the \emph{number} of each feature in the environment.  The approaches differ largely in how the midpoint is determined. The median of ratios method (MR) is instantiated in DESeq2 (and others), and the trimmed mean of M values (TMM) method is used by edgeR (and others). The DM method will be demonstrated and used, but the TMM gives substantially similar results, and uses the same basic logic since sample values are scaled by a per-sample feature-wise midpoint.
+
+The DM method calculates the ratio of the features to the geometric mean, $\mathrm{G}_i$, of each feature across all samples, and then takes as the normalization factor the median ratio per sample as the scaling factor. Each feature is then divided by the scaling factor to place each sample on an `equivalent' count scale. The idea is that the DM normalization `opens' the data from being compositional to being scaled counts. It is impossible to open the data, and while the scaled counts may have some useful properties, removing  compositional constraints are not among them.
+
+The multi-step normalization MR normalization attempts to normalize for sequencing depth thus `opening' the data, and proceeeds as in the multistep Eq. \ref{eq:dm}. Here we start with two sample vectors $\vec{\textbf{s}}_1$ and $\vec{\textbf{s}}_2$, and calculate a vector of geometric means of the features $\vec{\textbf{g}}$. Ratio vectors, $\vec{\textbf{r}}_j$ are calculated by dividing the sample vectors by the geometric mean vector, and the median of the ratio vectors is determined. Finally, the sample vectors are divided by the median of the ratio vector for each sample.
+
+
+\begin{equation}
+	\begin{aligned}
+		\vec{\textbf{g}} = &\ \mathrm{G}_{i-}\\
+		\vec{\textbf{r}}_j = &\ \vec{\textbf{s}}_j / \vec{\textbf{g}}\\
+		\vec{\textbf{d}}_j = &\ \vec{\textbf{s}}_j / Md(\vec{\textbf{r}}_j)\\
+	\end{aligned}
+\label{eq:dm}
+\end{equation}
+
+In Table \ref{tab:des} we can see that the median ratio for each sample $\vec{\textbf{r}}_j$  samples may be different in each sample, and that the particular feature that is the median may itself be different, the median feature is in boldface in the table. Thus, by construction the feature values in each sample can be scaled by different amounts in each sample.
+
+
+\begin{table}[!h]
+\caption{Example calculation of DM normalization}
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{c r r r r r r r}
+\hline
+Feature & $\vec{\textbf{s}}_1$ & $\vec{\textbf{s}}_2$ & $\vec{\textbf{g}}$ & $\vec{\textbf{r}}_1$ & $\vec{\textbf{r}}_2$ & $\vec{\textbf{d}}_1$ & $\vec{\textbf{d}}_2$ \\ \hline \hline
+F1 & 1500 & 1000 & 1224.7 & 1.22 & {\bf 0.81} & 1219.5 & 1234.6\\
+F2 & 25 & 15 & 19.4 & 1.29 & 0.77 & 20.3 & 18.5 \\
+F3 & 1000 & 500 & 707.1 & 1.41 & 0.71 & 813.0 & 617.3 \\
+F4 & 75 & 50 & 61.2 & {\bf 1.23} &  0.82 & 61.0 & 61.7 \\
+F5 & 500 & 1500 & 866.0 & 0.58 & 1.73 & 406.5 & 1851.9\\ \hline
+\end{tabular}
+}
+\label{tab:des}
+\end{table}
+
+```{r R_block_DES, fig.height=13, fig.width=15, results="show", echo=TRUE, message=F, error=F, warnings=F,fig.cap="\\label{numbers} Plot of Ladybugs vs. Tigers, Gnus vs. Ladybugs and Aliens vs. Gnus for simulated random Normal data after the DM normalization (top row). Plot of input numerical and DM normalized data for Tigers, Ladybugs and Gnus (bottom row)"}
+ran.dat.DM <- t(des.norm(t(ran.dat.prop)))
+par(mfrow=c(2,3), pch=19, col=rgb(0,0,0,0.5),
+    cex=1.5, cex.lab=1.5)
+plot(ran.dat.DM[,"T"],ran.dat.DM[,"L"],
+    xlab="T.dm", ylab="L.dm")
+plot(ran.dat.DM[,"L"],ran.dat.DM[,"G"],
+    xlab="L.dm", ylab="G.dm")
+plot(ran.dat.DM[,"G"],ran.dat.DM[,"A"],
+    xlab="G.dm", ylab="A.dm")
+
+plot(ran.dat[,"T"],ran.dat.DM[,"T"],
+    xlab="T", ylab="T.dm")
+plot(ran.dat[,"L"],ran.dat.DM[,"L"],
+    xlab="L", ylab="L.dm")
+plot(ran.dat[,"G"],ran.dat.DM[,"G"],
+    xlab="G", ylab="G.dm")
+```
+
+This DM transformation at first glance \emph{appears} to fix the problem caused by converting the data from numbers to proportions. The pairs of points in the top row are no longer as strongly correlated and the data seem to be randomly distributed. However, plotting the actual numbers vs the DM transformed values shows that the DM transformation is not restoring the data to their original form, but to some other. In the absence of a solid theoretical foundation, it is difficult to say exactly how we should interpret these DM-transformed data. It should be pointed out that above plots were generated on the TSS-normalized dataset, however only the scale of the \emph{dm} axes would change if the DM normalization was conducted on the original numerical data. Thus, conclusions derived from data that are DM-normalized actually tell us little about the underlying enviroment---despite the pervasive use of this transformation in the biomedical literature.
+
+## Log-ratio transformations
+Aitchison [-@Aitchison:1986] introduced the concept of the log-ratio transformation.
+
+
+There are three main log-ratio transformations; the additive log-ratio (alr), centred log-ratio (clr) and the isometric log-ratio (ilr) [@Aitchison:1986;@pawlowsky2015modeling].
+
+Using the same notation as above for a sample vector  $\vec{\textbf{s}}$ of $D$ `counted' features (taxa, operational taxonomic units or OTUs, genes, etc.) $\vec{\textbf{s}}=[s_1, s_2, ... s_D]$:
+
+The alr is the simply the elements of the sample vector divided by a presumed invariant feature, which by convention here is the last one:
+
+\begin{equation}
+\begin{aligned}
+ \vec{\textbf{x}}_{alr}= &\ [log(x_1/x_D), log(x_2/x_D), \\
+ & \ldots log(x_D-1/x_D]
+\end{aligned}
+ \label{eq:alr}
+\end{equation}
+
+
+This is similar to the concept used in quantitative PCR, where the relative abundance of the feature of interest is divided by the relative abundance of a (presumed) constant `housekeeping' feature. Of course there are two major drawbacks. First, that the experimentalist's knowledge of which, if any, features are invariant is necessarily incomplete. Second, is that the choice of the (presumed) invariant feature has a large effect on the result if the presumed invariant feature is not invariant, or if it is correlated with any other features in the dataset. Interestingly, an early proposal was to use the geometric mean of a number of internal controls [@Vandesompele:2002aa], leading to the next transformation.
+
+The centered log-ratio (clr) transformation introduced by [@Ait1983;@Aitchison:1986] uses the geometric mean of all features as the denominator:
+
+\begin{equation}
+\begin{aligned}
+   \vec{\textbf{x}}_{clr} = & [log(x_1/\mathrm{G}(\vec{\textbf{x}})), \\
+   & log(x_2/\mathrm{G}(\vec{\textbf{x}})), \\
+   & \ldots log(x_D/\mathrm{G}(\vec{\textbf{x}}))]
+\end{aligned}
+\label{eq:clr}
+\end{equation}
+
+where $\mathrm{G}(\vec{\textbf{x}}) = \sqrt[D]{x_1 \cdot x_2 \cdot ... \cdot x_D}$, the geometric mean of $\vec{\textbf{x}}$.
+
+The clr is often criticized since it has the property that the sum of the clr vector must equal 0. This constraint causes a singular covariance matrix; i.e., the sum of the covariance matrix is always a constant [@pawlowsky2015modeling]. However the clr has the advantage of being readily interpretable, a value in the vector is its abundance \emph{relative} to a mean value.
+
+The ilr is the final transformation, and is a series of sequential log-ratios between two groups of features. For example, the philr transformation is the series of ratios between OTUs partitioned along the phylogenetic tree [@Silverman:2017aa], although any other sequential binary partitioning  scheme is also possible [@pawlowsky2015modeling]. The ilr transformation does not suffer the drawbacks of either the alr or clr, but does not allow for insights into relationships between single features in the dataset.  Nevertheless, ilr transformations permit the full-range of multivariate tools to be used, and are recommended whenever possible.
+
+The ilr and clr are directly comparable in a two important ways: First, the distances between samples computed using an ilr and clr transformation are equivalent. Second, the clr approaches the ilr in other respects as the number of features becomes large. In this respect, the large number of features---hundreds in the case of OTUs, thousands in the case of genes---in a typical experiment works in our favour. Thus, while not perfect, the clr is the most widely used transformation. However, care must be taken when interpreting its outputs since single features must always be interpreted as a ratio between the feature and the denominator used for the clr transformation. The problems of using clr are apparent  when some subcomposition or group of taxa is analysed for further insight since the geometric mean of the subcomposition is not necessarily equal to that of the original composition, leading to potential inconsistencies.
+
+Log-ratio values of any type do not need to be normalized since the total sum is a term in both the numerator and the denominator. Thus, the same log-ratio value will be obtained for the vector of raw read counts, or the vector of normalized read counts, or the vector of proportions calculated from the counts. Thus, log-ratios are said to be equivalence classes such that there is no information in the total count (aside from precision) [@barcelo:2001].
+
+Attempts to `open' the data are doomed to failure because the data cannot be moved from the simplex to Euclidian space. The total count delivered by the sequencing instrument is a function of the instrument and not the number of molecules sampled from the environment, thus the total count has no geometric meaning. If the data are collected in such a way that the total count represents the actual count in the environment, then the data are not compositional and issues regarding compositional data disappear. However, at present all sequencing platforms deliver a fixed-sum, random sample of the proportion of molecules in the environment.
+
+Note that this does not mean that the read depth is irrelevant since more reads for a sample translate into greater precision when estimating the proportions [@fernandes:2013].
+
+\section{Comparing Transforms and Distances}
+
+The microbiome and transcriptome literature are replete with distance metrics, and it is common to find that a single study will use several distance metrics to report their findings. This is a problem since it shows that practitioners are unsure of the reason to use a metric, and the use of more than one metric leads to data dredging and research degrees of freedom---both of which increase the chances of finding false positives in the data to a surety.
+
+Distance metrics can be broadly divided into those that require partitioning and those that do not. The UniFrac [@Lozupone:2011aa;@unifrac:2005] and philr [@Silverman:2017aa] both require a phylogenetic tree, making these metrics applicable only to situations where the features can be so partitioned. For example, these distances are useful when examining 16S rRNA gene sequencing experiments. We have found that the unweighted UniFrac method is unreliable, and should be used with caution [@Wong:2016aa}, a point that was made in the original UniFrac paper and subsequently forgotten. The philr metric is a drop-in replacement for the weighted UniFrac distance metric and should be used whenever possible, since `philr` is an ilr transformation of the data where the sequential binary partitions are made along the phylogenetic tree. The `philr` transformation is thus compositionally appropriate. In practice, the weighted UniFrac distance metric provides similar results to the Aitchison distance, described below, and the ilr distance calculated using the philr transform approaches the Aitchison distance when the number of features is large.
+
+Several non-phylogenetic distances are in widespread use in the literature. These will be discussed in turn below, and their effects on distances between a random samples illustrated.
+
+\subsection{Distances in counts and proportion}
+
+Ideally, we use distance metrics to inform us as to something of relevance in the actual sample. That is, if we collect our data on the numbers of tigers, ladybugs, gnus and space aliens, what can we infer about the actual data \emph{after  sequencing}?  which as we have seen, is the same as asking what can we infer after converting the data to relative abundances (proportions)?
+
+There are two main ways to think about distances: Euclidian and Manhattan. The Euclidian distance is the straight-line distance between two points. If we have a rectangular room, the Euclidian distance between two corners would be the distance travelled by walking diagonally across the room from one corner to the other. The Manhattan distance would be the distance travelled by walking along the walls between the two corners. Obviously, the Manhattan distance will always be larger than the Euclidian distance. So how do these two simple metrics compare when calculate on numbers and on compositions?
+
+```{r R_block_dist, fig.height=16, fig.width=15, results="show", echo=TRUE, message=F, error=F, warnings=F}
+library(vegan)
+
+dist.ran.dat <- as.matrix(vegdist(
+    ran.dat, method="euclidian"))
+dist.ran.dat.MAN <- as.matrix(vegdist(
+    ran.dat, method="manhattan"))
+dist.ran.dat.prop <- as.matrix(vegdist(
+    ran.dat.prop, method="euclidian"))
+dist.ran.dat.prop.MAN <- as.matrix(vegdist(
+    ran.dat.prop, method="manhattan"))
+
+par(mfrow=c(2,2), pch=19, col=rgb(0,0,0,0.5),
+    cex=1.5, cex.lab=1.5)
+
+plot(dist.ran.dat[1,], dist.ran.dat.MAN[1,],
+    xlab="Euclidian", ylab="Manhatten",
+    main="Numbers")
+plot(dist.ran.dat.prop[1,], dist.ran.dat.prop.MAN[1,],
+    xlab="Euclidian.p", ylab="Manhattan.p",
+    main="Proportions")
+plot(dist.ran.dat[1,], dist.ran.dat.prop[1,],
+    xlab="Euclidian", ylab="Euclidian.p",
+    main="Number vs Proportions")
+plot(dist.ran.dat.MAN[1,], dist.ran.dat.prop.MAN[1,],
+    xlab="Manhattan", ylab="Manhattan.p",
+    main="Number vs Proportions")
+```
+
+We can see that the Euclidian and Manhattan distances are generally correlated, but not identical, when comparing distances in the original set of random samples only, or when the data in the samples are converted to proportions. However, the distances between samples are very different when comparing the numerical and proportional data. This tells us that the inferences we make from sequencing data can not translate to inferences about the actual abundances of features in the environment, but only to their relative abundances. So which distance metric should we use for proportional data? It turns out that neither are suitable because these distance metrics assume linear differences between features, and this is not true in proportional data [@Aitchison:1986].
+
+Data normalizations are often touted as removing the compositionality of the data. We shall see that this is not true, and inappropriate data transformations confound, rather than providing clarity.
+
+Plotting three of the possible combinations, we can see that the features are essentially uncorrelated with each other and each sample is a random distances from any other. Any inference we make from transformations of this data must be relatable to this `ground truth'. I now run through each of the transformations in turn, and illustrate the difference between the actual data, and the transformed data.
+
+\subsection{Bray-Curtis Dissimilarity}
+
+The Bray-Curtis dissimilarity is a Manhattan distance normalized to range between 0 and 1. In the test dataset, the Euclidian distance and the Bray-Curtis (BC) distances are essentially linearly related.
+
+```{r R_block_bray, fig.height=16, fig.width=15, results="show", echo=TRUE, message=F, error=F, warnings=F}
+library(vegan)
+
+dist.ran.dat.BC <- as.matrix(vegdist(
+    ran.dat, method="bray"))
+dist.ran.dat.MAN <- as.matrix(vegdist(
+    ran.dat, method="manhattan"))
+dist.ran.dat.DM.BC <- as.matrix(vegdist(
+    ran.dat.DM, method="bray"))
+dist.ran.dat.prop.BC <- as.matrix(vegdist(
+    ran.dat.prop, method="bray"))
+
+par(mfrow=c(2,2), pch=19, col=rgb(0,0,0,0.5),
+    cex=1.5, cex.lab=1.5)
+
+plot(dist.ran.dat.MAN[1,],dist.ran.dat[1,],
+    xlab="S1 Euc", ylab="S1 BC",
+    main="Euc vs BC")
+plot(dist.ran.dat.BC[1,], dist.ran.dat.prop.BC[1,],
+    xlab="S1 BC", ylab="S1.p BC",
+    main="BC vs BC.p")
+plot(dist.ran.dat.BC[1,], dist.ran.dat.DM.BC[1,],
+    xlab="S1 BC", ylab="S1.p DM",
+    main="BC vs BC.DM")
+plot(dist.ran.dat.prop.BC[1,], dist.ran.dat.DM.BC[1,],
+    xlab="S1.p BC", ylab="S1.p DM",
+    main="BC.p vs BC.DM")
+
+```
+
+
+\subsection{Euclidian Distance of TSS scaling transformation}
+
+The TSS scaling transformation is simply a conversion of each sample from a count to a proportion.
+
+```{r R_block_random_prop, fig.height=16, fig.width=15, results="show", echo=TRUE, message=F, error=F, warnings=F}
+
+dist.ran.dat.prop <- as.matrix(dist(
+    ran.dat.prop, method="euclidian"))
+
+
+```
+
+\subsection{Euclidian Distance of DM transformation}
+
+The DM scaling transformation is a change in the scale of the sample vector $\vect{j}$, where each sample is scaled by a different amount. This has the desirable property that it \emph{can} restore the  a conversion of each sample from a count to a proportion.
+
+```{r R_block_random_DM, fig.height=16, fig.width=15, results="show", echo=TRUE, message=F, error=F, warnings=F}
+
+dist.ran.dat.DM <- as.matrix(dist(
+    ran.dat.DM, method="euclidian"))
+
+par(mfrow=c(2,2), pch=19, col=rgb(0,0,0,0.5),
+    cex=1.5, cex.lab=1.5)
+
+plot(ran.dat.DM[,"T"],ran.dat.DM[,"L"],
+    xlab="T.dm", ylab="L.dm")
+plot(ran.dat.DM[,"L"],ran.dat.DM[,"G"],
+    xlab="L.dm", ylab="G.dm")
+plot(ran.dat.DM[,"G"],ran.dat.DM[,"A"],
+    xlab="G.dm", ylab="A.dm")
+plot(dist.ran.dat[1,], dist.ran.dat.DM[1,],
+    xlab="S1 vs all", ylab="S1.dm vs all.dm",
+    main="Distance")
+```
+
+\texttt{plot\_ly(x=ran.dat[,"L"], y=ran.dat[,"T"], z=ran.dat[,"G"])}
+
+\texttt{plot\_ly(x=ran.dat.prop[,"L"], y=ran.dat.prop[,"T"], z=ran.dat.prop[,"G"])}
+
+\texttt{plot\_ly(x=ran.dat.DM[,"L"], y=ran.dat.DM[,"T"], z=ran.dat.DM[,"G"])}
+
+\subsection{Jensen-Shannon Divergence}
+\subsection{Aitchison Distance}

@@ -1,0 +1,52 @@
+# DNA sequencing data are compositions
+
+## Compositional data analysis: more formal statement.
+
+A dataset is defined as compositional if it contains $D$ multiple parts, where each part is non-negative, and the sum of the parts is known [@Aitchison:1986,pg25]. A composition containing $D$ parts where the sum is 1 can be formally stated as: $C_D = \{(x_1,x_2,x_3, \ldots x_D); x_1\ge 0, x_2\ge 0, x_3 \ge 0, \ldots x_D \ge 0; \sum_{x=1}^{D} = 1\}$. The sum of the parts is usually set to 1 or 100, but can take any value; i.e., any composition can be scaled to any arbitrary sum such as a ppm.  It is important to know that the values of the parts of compositional datasets are constrained because of the constant sum. The constant sum constraint causes the parts to have a negative correlation bias since an increase in the value of one part must be offset by a decrease in value of one or more other parts. Thus any correlation-based analysis is invalid in these datasets, as originally noted by Pearson[-@Pearson:1896]. In addition, compositional datasets have the property that they are described by $D-1$ observations if the sum of the parts is known [@Aitchison:1986]. In other words, if we know that all parts sum to 1, then the last part can be known by subtracting the sum of all other parts from 1, i.e., $x_D = 1-\sum_{x=1}^{D-1}$. Graphically, this means that compositions inhabit a space called the Aitchison simplex that contains 1 fewer dimensions than the number of parts. The distances between parts on the Aitchison simplex are not linear, especially at the boundaries. This is important because all common statistical tests assume a that differences between parts are linear (or additive). Thus, while standard tests will produce output, the output will be misleading because distances on the simplex are non-linear and bounded[@martin1998measures].
+
+\subsubsection{Sub-compositions:}~Compositional data also exhibit the unusual property that the examination of a sub-composition of these data will provide different answers for those taxa in common in the full and sub-composition [@Aitchison:1986]. This is problematic because 16S rRNA gene sequencing experimental designs are \emph{always} sub-compositions. Inspection of papers in the literature provide many examples. For example, it is common practice to discard rare OTU species prior to analysis and to re-normalize by dividing the counts for the remaining OTUs by the new sample sum. It is also common to use only one or a few taxonomic groupings to determine differences between experimental conditions. In the case of RNA-seq only the mRNA or miRNA is sequenced. All of these practices expose the investigator to the problem of non-coherence between sub-compositions. Formally, the approach used here  is not sub-compositionally coherent, but it is a reasonable approximation as long as the majority of OTUs are invariant or exhibit stochastic fluctuations.
+
+```{r R_block_correlation, echo=FALSE,fig.width=4,fig.height=4, fig.cap="\\label{correlation} Spurious correlation in compositional data. Two random vectors drawn from a Normal distribution, were divided by a third vector also drawn at random from a Normal distribution. The two vectors have nothing in common, they should exhibit  no correlation, and yet they exhibit a correlation coefficent of $>0.65$ when divided by the third vector. See the introductory section of the Supplementary Information of Lovell [-@Lovell:2015] for a more complete description of this phenomenon. "}
+
+n.obs <- 100
+OTU.df <- data.frame(OTU1=rnorm(n.obs, mean=10, sd=1),
+                      OTU2=rnorm(n.obs, mean=10, sd=1),
+                      OTU3=rnorm(n.obs, mean=30, sd=4))
+OTU.df <- transform(OTU.df,
+                     OTU1.over.OTU3= OTU1/OTU3,
+                     OTU2.over.OTU3= OTU2/OTU3)
+plot(OTU.df$OTU1.over.OTU3, OTU.df$OTU2.over.OTU3, pch=19, cex=0.3,xlab="OTU1/OTU3", ylab="OTU2/OTU3")
+#cor(OTU.df$OTU1.over.OTU3, OTU.df$OTU2.over.OTU3)
+```
+
+## Spurious correlations:
+
+Finally, it is important to know that compositional data has the additional problem of  spurious correlation [@Pearson:1896], and in fact this was the first troubling issue identified with compositional data. This phenomenon is best illustrated with  the following example from Lovell et. al [-@Lovell:2015], where they show how simply dividing two sets of random numbers (say abundances of OTU1 and OTU2), by a third set of random numbers (say abundances of OTU3) results in a strong correlation. Note that this phenomenon depends only on there being a common denominator.
+
+Practically speaking this means that \emph{every microbial correlation network that has ever been published is suspect} unless it was determined using SPARCC \cite{Friedman:2012} or SPIEC-EASI [@Kurtz:2015] or the $\phi$ metric [@Lovell:2015]. These approaches themselves have limitations, both SPARCC and SPIEC-EASI assume sparse data, and the $\phi$ metric as originally constituted cannot deal with sparse data.  Lovell is in the process of producing an R package for the compositionally appropriate examination of correlations (personal communication), and below we show one strategy by which the $\phi$ metric can be adapted to sparse data.
+
+Atichison [-@Aitchison:1986], Pawlsky-Glahn [-@Pawlowsky-Glahn:2006], and Egozcue [-@egozcue2005], have done much work to develop rigorous approaches to analyze compositional data [@pawlowsky2011compositional]. The essential step is to reduce the data to ratios between the $D$ parts as outlined above. This step does not move the data from the Simplex but does transform the data on the Simplex  such that the distances between the ratios of the features are linear. The investigator must keep in mind that the distances are between ratios, not between counts. Several transformations are in common use, but the one most applicable to HTS data is the centred log-ratio transformation or clr, where the data in each sample is transformed by taking the logarithm of the the ratio between the count value for each part and the geometric mean count: i.e., for D features in sample X:
+
+ $clr [x_1, x_2, x_3, \ldots x_D] = [log_2(x_1/gX), log_2(x_2/gX), log_2(x_3/gX) \ldots log_2(x_D/gX)]$,
+
+ where $gX$ is the geometric mean of the features in sample X. This is the transformation described above.
+
+
+## So how can I analyze compositional data?
+
+Fortunately, the analysis of compositional datasets has a well-developed methodology [@pawlowsky2015modeling;@van2013], much of which was worked out in the geological sciences. The following steps, and example code, is a step by step guide to examining a compositional 16S rRNA gene sequencing dataset in a compositional manner. This approach assumes that there is nothing really special about high-throughput sequencing data from the point of view of the analysis. The user should realize however that compositional data analysis is still an area of active research and the types of datasets typically found in high-throughput biology are particularly problematic because they are  high-dimensional datasets that contain many 0 values.
+
+
+There are three main data analysis issues that must be acknowledged.
+
+First, the nature of these data are misunderstood. As outlined above, the number of counts observed  per OTU are determined entirely by the capacity of the instrument and provide no information about the number of molecules in the input sample. Recall that both bacterial growth, and PCR are doubling processes and not linear processes, and so would be better modelled as log$_2$ differences.
+
+Understanding that we are dealing with fold-change data is an explicit acknowledgement that the data do not map to normal Euclidian space where differences are linear.  Commonly used statistical tests expect linear differences between values and so are compromised to some degree, often catastrophically[@Aitchison:1986,vandenBoogaart2008320] Therefore, the often-used approaches of converting the OTU count values to proportions or percentages and conducting statistical tests on those values, or of using data reduction strategies such as Principle Component Analysis on the  values are inappropriate because the differences between values are not linear. An alternative approach is to convert the OTU counts to ratios[@Aitchison:1986;@aitchison:2005;@Pawlowsky-Glahn:2006;@pawlowsky2011compositional] which makes the differences between the ratios of values linear, and so allows the use of common statistical tests.
+
+However the user must interpret the output as ratios between feature abundances rather than absolute differences[@pawlowsky2011compositional] This approach is described below.
+
+Second, high throughput sequencing (HTS) data represent samples of an unknown underlying large number of molecules. Thus, there is a large and unappreciated  error of estimation that is problematic when dealing with these data[@fernandes:2013] The high error of estimation often results in false positive identification of differences, in fact, the statistical result can often be explained entirely by sampling variation.  This error is not captured by rarefaction or even acknowledged by other normalization methods and should be estimated and accounted for when deciding what is a significant difference.
+
+Third, 16S rRNA gene sequencing surveys, and similar experiments, contain many variables in each sample. Thus, any analysis that attempts to characterize the individual differences between groups must correct for the many hypotheses that are being tested. This step is often ignored, even in work published in very high profile journals subject to rigorous peer review.
+
+The purpose of these notes is to show  why HTS data for 16S rRNA gene sequencing, and any similar experiments such as RNA-seq, should be treated as ratio data and that it is possible to do so simply. We show that this approach accurately recapitulates the shape of the data for both constrained and unconstrained datasets. We show that converting the data to ratios can accurately model the very high variability at the low count margins, and that rarefaction under-estimates this variability. We use an example from the literature to show how ignoring these factors leads to improper conclusions.

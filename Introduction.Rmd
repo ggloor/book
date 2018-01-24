@@ -1,0 +1,47 @@
+# Introduction
+
+## About this document
+
+This document is an .Rmd document and can be found at:
+
+github.com/ggloor/templates
+
+The document is a template for two column R markdown. It requires an installation of \LaTeX to work properly. This document contains interspersed markdown and R code that may be compiled into a pdf document and supports the figures and assertions in the main article. R code is exposed in the pdf document so that the interested reader can work through the example code themselves.
+
+## Reproducing the analysis
+
+From an R command prompt you can compile this document into PDF if you have \LaTeX and pandoc installed:
+
+`rmarkdown::render('two_column.Rmd')` or you can open the file in RStudio and compile in that environment.
+
+## R packages required
+
+We will need the following R packages, several functions are defined in a dedicated functions section.
+
+1. knitr (CRAN)
+
+```{r R_block_1, results="hide", echo=F, message=F, error=F, warnings=F}
+
+# in theory - requires knitr and LaTeX installed
+# from a bash prompt:
+# R -e "rmarkdown::render('Frontiers_Supplement.Rmd')"
+# from within an R terminal:
+# rmarkdown::render('Frontiers_supplement.Rmd')
+# commands to load libraries and datasets
+library(knitr)
+```
+
+This booklet is intended for use in teaching graduate student courses and conference workshops on using compositional data analysis methods to examine high throughput sequencing datasets. The approach taken here is largely intuitive and hands on. Formulas for basic methodologies are presented, but the intuitive reason for using them takes precedence. The methods presented here have been used for 16S rRNA gene sequencing, transcriptomics, metagenomics and in-vitro selection (selex) experiments.
+
+I begin with background and theory, and progress to practical examples. I hope you find this useful.
+
+## Outline of the material
+
+- I begin with a brief overview of sequencing technologies, and describe how and why these instruments generate data that are constrained to a constant count.
+- I next semi-formally introduce compositional data, and show with examples the pathologies associated with this type of data.
+- I then introduce common data transforms and distances used in the high throughput sequencing literature, and demonstrate that none of the transforms affects the compositional nature of the data, and that in fact, many of the transforms affect the data in non-intuitive ways
+- I then introduce sequencing as a stochastic process, explain why we need to estimate our technical variance and show how this can be done technical variance
+- I begin the practical part with exploratory data analysis using the compositional biplot
+- I describe the properties of three types of plots to examine high dimensional data: Bland-Altman plots (MA plots), volcano plots, and effect plots
+- I describe compositionally appropriate methods to estimate differential abundance with an emphasis on ALDEx2 and to a lesser extent ANCOM
+- I describe compositional association as a replacement for correlation using the propr R package

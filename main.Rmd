@@ -1,5 +1,5 @@
 ---
-title: "Supplementary workflow"
+title: "Compositional analysis of high throughput sequencing data"
 author: "Greg Gloor"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 geometry: margin=2cm
@@ -10,7 +10,7 @@ output:
         keep_tex: true
         fig_caption: true
         toc: true
-        toc_depth: 2
+        toc_depth: 3
         includes:
             in_header: /Users/ggloor/Documents/0_git/templates/header.tex
         pandoc_args: [
@@ -18,40 +18,24 @@ output:
         ]
 ---
 
-# About this document
-
-This document is an .Rmd document and can be found at:
-
-github.com/ggloor/templates
-
-The document is a template for two column R markdown. It requires an installation of \LaTeX to work properly. This document can contain interspersed markdown and R code that may be compiled into a pdf document and supports the figures and assertions in the main article. R code is not exposed in the pdf document but is referred to by `R code block` in the text so that the interested reader can work through the example code themselves.
-
-## Reproducing the analysis
-From an R command prompt you can compile this document into PDF if you have \LaTeX and pandoc installed:
-
-`rmarkdown::render('two_column.Rmd')` or you can open the file in RStudio and compile in that environment.
-
-## R packages required
-
-We will need the following R packages and add-ons (`R_block_1`).
-
-1. knitr (CRAN)
-
-```{r R_block_1, results="hide", echo=F, message=F, error=F, warnings=F}
-
-# in theory - requires knitr and LaTeX installed
-# from a bash prompt:
-# R -e "rmarkdown::render('Frontiers_Supplement.Rmd')"
-# from within an R terminal:
-# rmarkdown::render('Frontiers_supplement.Rmd')
-# commands to load libraries and datasets
-library(knitr)
-```
-
 \clearpage
 
-```{r child = 'Chapter2/transforms.Rmd'}
+
+```{r child = 'introduction.Rmd'}
 ```
+\clearpage
+
+```{r child = 'sequencing.Rmd'}
+```
+\clearpage
+
+```{r child = 'compositional_data.Rmd'}
+```
+\clearpage
+
+```{r child = 'transforms.Rmd'}
+```
+
 
 \clearpage
 
