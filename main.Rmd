@@ -36,6 +36,8 @@ output:
 ```{r child = 'transforms.Rmd'}
 ```
 
+```{r child = 'biplot.Rmd'}
+```
 
 \clearpage
 

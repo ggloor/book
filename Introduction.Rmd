@@ -38,7 +38,7 @@ I begin with background and theory, and progress to practical examples. I hope y
 ## Outline of the material
 
 - I begin with a brief overview of sequencing technologies, and describe how and why these instruments generate data that are constrained to a constant count.
-- I next semi-formally introduce compositional data, and show with examples the pathologies associated with this type of data.
+- I next semi-formally introduce compositional data, and describe with examples the pathologies associated with this type of data.
 - I then introduce common data transforms and distances used in the high throughput sequencing literature, and demonstrate that none of the transforms affects the compositional nature of the data, and that in fact, many of the transforms affect the data in non-intuitive ways
 - I then introduce sequencing as a stochastic process, explain why we need to estimate our technical variance and show how this can be done technical variance
 - I begin the practical part with exploratory data analysis using the compositional biplot

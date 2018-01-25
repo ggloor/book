@@ -1,52 +1,86 @@
 # DNA sequencing data are compositions
 
-## Compositional data analysis: more formal statement.
+## High throughput sequencing generates compositional data
 
-A dataset is defined as compositional if it contains $D$ multiple parts, where each part is non-negative, and the sum of the parts is known [@Aitchison:1986,pg25]. A composition containing $D$ parts where the sum is 1 can be formally stated as: $C_D = \{(x_1,x_2,x_3, \ldots x_D); x_1\ge 0, x_2\ge 0, x_3 \ge 0, \ldots x_D \ge 0; \sum_{x=1}^{D} = 1\}$. The sum of the parts is usually set to 1 or 100, but can take any value; i.e., any composition can be scaled to any arbitrary sum such as a ppm.  It is important to know that the values of the parts of compositional datasets are constrained because of the constant sum. The constant sum constraint causes the parts to have a negative correlation bias since an increase in the value of one part must be offset by a decrease in value of one or more other parts. Thus any correlation-based analysis is invalid in these datasets, as originally noted by Pearson[-@Pearson:1896]. In addition, compositional datasets have the property that they are described by $D-1$ observations if the sum of the parts is known [@Aitchison:1986]. In other words, if we know that all parts sum to 1, then the last part can be known by subtracting the sum of all other parts from 1, i.e., $x_D = 1-\sum_{x=1}^{D-1}$. Graphically, this means that compositions inhabit a space called the Aitchison simplex that contains 1 fewer dimensions than the number of parts. The distances between parts on the Aitchison simplex are not linear, especially at the boundaries. This is important because all common statistical tests assume a that differences between parts are linear (or additive). Thus, while standard tests will produce output, the output will be misleading because distances on the simplex are non-linear and bounded[@martin1998measures].
+In the previous chapter we saw that the capacity of the sequencing instrument imposed an upper bound on the total number of fragments that could be obtained from a given sequencing run. We also saw that the process of sequencing is essentially a random sampling of an environment where the environment contains more fragments than can possibly be sequenced. Finally, the data obtained are read counts per genetic interval (gene or OTU) per sample.
 
-\subsubsection{Sub-compositions:}~Compositional data also exhibit the unusual property that the examination of a sub-composition of these data will provide different answers for those taxa in common in the full and sub-composition [@Aitchison:1986]. This is problematic because 16S rRNA gene sequencing experimental designs are \emph{always} sub-compositions. Inspection of papers in the literature provide many examples. For example, it is common practice to discard rare OTU species prior to analysis and to re-normalize by dividing the counts for the remaining OTUs by the new sample sum. It is also common to use only one or a few taxonomic groupings to determine differences between experimental conditions. In the case of RNA-seq only the mRNA or miRNA is sequenced. All of these practices expose the investigator to the problem of non-coherence between sub-compositions. Formally, the approach used here  is not sub-compositionally coherent, but it is a reasonable approximation as long as the majority of OTUs are invariant or exhibit stochastic fluctuations.
+The read counts per sample range from 0 to, as a maximum, the total number of reads in the sample. Thus the data are positive integer data with an arbitrary maximum. While the data have an arbitrary maximum, the majority of current tools assume the data are counts and ignore the arbitrary maximum constraint. This assumption is the basis of methods grounded in distributions such as the zero inflated Gaussian (ZIG) [@Paulson:2013aa], negative binomial [@Robinson:2010] and Poisson based models [@auer:2011]. Recent benchmarking has demonstrated that such methods are unpredictable when dealing with highly sparse data [@Thorsen:2016aa] and do not control the false discovery rate [@gloorAJS:2016; @hawinkel2017].
 
-```{r R_block_correlation, echo=FALSE,fig.width=4,fig.height=4, fig.cap="\\label{correlation} Spurious correlation in compositional data. Two random vectors drawn from a Normal distribution, were divided by a third vector also drawn at random from a Normal distribution. The two vectors have nothing in common, they should exhibit  no correlation, and yet they exhibit a correlation coefficent of $>0.65$ when divided by the third vector. See the introductory section of the Supplementary Information of Lovell [-@Lovell:2015] for a more complete description of this phenomenon. "}
+ Data of this type are called count compositions, and a number of groups have started to work on developing appropriate methods to deal with high throughput datasets as count compostions [@Friedman:2012; @fernandes:2013; @fernandes:2014; @Lovell:2015; @ancom:2015;@Kurtz:2015;@Gloor:2016cjm;@erb:2016;@gloor2016s;@Tsilimigras:2016aa;@Washburne:2017aa;@Quinn:2017;@Silverman:2017aa;@Quinn206425;@Kaul:2017aa;@Erb134536;@egozcue:AJS].
+
+So what is compositional data, and what are its properties with respect to high throughput sequencing that make this an important issue?
+
+## Compositional data
+
+Data from high throughput sequencing have the following properties; the data are counts, the data are non-negative, and the data has an upper bound imposed by the instrument because there is a limit to the number of fragments (and hence gene or OTU counts) that can be observed. This fits with the definition of compositional data: the data contains $D$  features (OTUs, genes, etc), where the count of each feature is non-negative, and the sum of the parts is known [@Aitchison:1986, pg25]. Note that the data do not have to sum to a predetermined amount, it is sufficient that the sum of the parts be known and not be able to be exceeded.
+
+A vector containing $D$ features where the sum is 1 can be formally stated as: $\vec{X} = \{(x_1,x_2,x_3, \ldots x_D); x_i\ge 0; \sum_{x=1}^{D} = 1\}$. The sum of the parts is usually set to 1 or 100, but can take any value; i.e., any composition can be scaled to any arbitrary sum such as a ppm.  The property of scaling to any arbitrary value is named an equivalence class and compositional data are equivalence classes [@barcelo:2001]. In the lexicon of high throughput sequencing the vector is the sample and the features are the OTUs or genes or genomic intervals. The total sum is the total number of fragments observed for the sample.
+
+Compositional data have a number of built-in pathologies: a negative correlation bias, sub-compositional incoherence, and spurious correlations. A proper analysis of compositional data must account for these pathologies, and in addition be scale invariant, permutation invariant, and exhibit subcompositional coherence (or at least sub-compositional dominance).
+
+More formally, compositional datasets have the property that they are described by $D-1$ observations [@Aitchison:1986]. In other words, if we know that all parts sum to 1, then the last part can be known by subtracting the sum of all other parts from 1, i.e., $x_D = 1-\sum_{x=1}^{D-1}$. Graphically, this means that compositions inhabit a space called a
+Simplex that contains 1 fewer dimensions than the number of parts. The distances between parts on the Simplex are not linear. This is important because all parametric statistical tests assume that differences between parts are linear (or additive). Thus, while standard tests will produce output, the output will be misleading because distances on the simplex are non-linear and bounded [@martin1998measures]. The chapter on Data Transformations contains an intuitive demonstration of how data is moved to the Simplex.
+
+### Negative correlation bias in compositions
+
+\begin{picture}(100,50)(0,0)
+    \put(50,25){V}
+    \put(142,25){M}
+    \put(100,5){\vector(0,1){12} }
+    \put(50,20){\line(1,0){100}}
+\end{picture}
+
+The values of the parts of compositional datasets are constrained because of the constant sum, and this constraint has been known for a very long time. The features in a composition have a negative correlation bias since an increase in the value of one part must be offset by a decrease in value of one or more other parts. In the illustration above, we see that 'V' and 'M' are perfectly balanced on the fulcrum because they have the same mass. If M becomes heavier, then V will rise even though the mass of V has not changed. The same principle operates in compositional data. If V is the amount of money spend on vegetables, and M is the amount of money spent on meat, and the total food budget is a constant, then the only way that more meat would be consumed would be to spend less on vegetables. Therefore, the amount of money spent on V and M will be perfectly negatively correlated if the total food budget is constrained. This example generalizes to any number of items in the shopping basket as long as the total budget is constrained. When there are more items, then an increase in one item (say shoes) must be offset by a decrease in another item, but it could be a decrease in meat, vegetables or both.
+
+### Spurious correlations:
+
+In addition to a negative correlation bias, compositional data has the additional problem of  spurious correlation [@Pearson:1896]; in fact spurious correlation was the first troubling issue identified with compositional data. This phenomenon is best illustrated with  the following example from Lovell et. al [-@Lovell:2015], where they show how simply dividing two sets of random numbers (say abundances of OTU1 and OTU2), by a third set of random numbers (say abundances of OTU3) results in a strong correlation. Note that this phenomenon depends only on there being a common denominator.
+
+```{r R_block_correlation, echo=TRUE,fig.width=4,fig.height=4, fig.cap="\\label{correlation} Spurious correlation in compositional data. Two random vectors drawn from a Normal distribution, were divided by a third vector also drawn at random from a Normal distribution. The two vectors have nothing in common, they should exhibit  no correlation, and yet they exhibit a correlation coefficent of $>0.65$ when divided by the third vector. See the introductory section of the Supplementary Information of Lovell [-@Lovell:2015] for a more complete description of this phenomenon. "}
 
 n.obs <- 100
-OTU.df <- data.frame(OTU1=rnorm(n.obs, mean=10, sd=1),
-                      OTU2=rnorm(n.obs, mean=10, sd=1),
-                      OTU3=rnorm(n.obs, mean=30, sd=4))
+OTU.df <- data.frame(
+    OTU1=rnorm(n.obs, mean=10, sd=1),
+    OTU2=rnorm(n.obs, mean=10, sd=1),
+    OTU3=rnorm(n.obs, mean=30, sd=4))
 OTU.df <- transform(OTU.df,
-                     OTU1.over.OTU3= OTU1/OTU3,
-                     OTU2.over.OTU3= OTU2/OTU3)
-plot(OTU.df$OTU1.over.OTU3, OTU.df$OTU2.over.OTU3, pch=19, cex=0.3,xlab="OTU1/OTU3", ylab="OTU2/OTU3")
-#cor(OTU.df$OTU1.over.OTU3, OTU.df$OTU2.over.OTU3)
+    OTU1.over.OTU3= OTU1/OTU3,
+    OTU2.over.OTU3= OTU2/OTU3)
+plot(OTU.df$OTU1.over.OTU3,
+    OTU.df$OTU2.over.OTU3, pch=19,
+    cex=0.3,xlab="OTU1/OTU3",
+    ylab="OTU2/OTU3")
 ```
 
-## Spurious correlations:
+### Sub-compositions
 
-Finally, it is important to know that compositional data has the additional problem of  spurious correlation [@Pearson:1896], and in fact this was the first troubling issue identified with compositional data. This phenomenon is best illustrated with  the following example from Lovell et. al [-@Lovell:2015], where they show how simply dividing two sets of random numbers (say abundances of OTU1 and OTU2), by a third set of random numbers (say abundances of OTU3) results in a strong correlation. Note that this phenomenon depends only on there being a common denominator.
+Compositional data have the third property  of a sub-composition incoherence of correlation metrics. That is, \emph{correlations calculated on compositional datasets are unique to the particular dataset chosen} [@Aitchison:1986]. This is problematic because high throughput sequencing experimental designs are \emph{always} sub-compositions. Inspection of papers in the literature provide many examples. For example, in the 16S rRNA gene sequencing literature it is common practice to discard rare OTU species prior to analysis and to re-normalize by dividing the counts for the remaining OTUs by the new sample sum. It is also common to use only one or a few taxonomic groupings to determine differences between experimental conditions. In the case of RNA-seq only the fraction of RNA of interest is sequenced, usually mRNA but other sub-fractions such as miRNA may be sequenced. All of these practices expose the investigator to the problem of non-coherence between sub-compositions. We must use compositionally-appropriate measures of correlation---more formally, we are attempting to find features that are compositionally associated. Compositional association is a more restricted measure of correlation and is explained more completely in the chapter on data transformations.
 
-Practically speaking this means that \emph{every microbial correlation network that has ever been published is suspect} unless it was determined using SPARCC \cite{Friedman:2012} or SPIEC-EASI [@Kurtz:2015] or the $\phi$ metric [@Lovell:2015]. These approaches themselves have limitations, both SPARCC and SPIEC-EASI assume sparse data, and the $\phi$ metric as originally constituted cannot deal with sparse data.  Lovell is in the process of producing an R package for the compositionally appropriate examination of correlations (personal communication), and below we show one strategy by which the $\phi$ metric can be adapted to sparse data.
+To summarize, compositional data has the following pathologies:
 
-Atichison [-@Aitchison:1986], Pawlsky-Glahn [-@Pawlowsky-Glahn:2006], and Egozcue [-@egozcue2005], have done much work to develop rigorous approaches to analyze compositional data [@pawlowsky2011compositional]. The essential step is to reduce the data to ratios between the $D$ parts as outlined above. This step does not move the data from the Simplex but does transform the data on the Simplex  such that the distances between the ratios of the features are linear. The investigator must keep in mind that the distances are between ratios, not between counts. Several transformations are in common use, but the one most applicable to HTS data is the centred log-ratio transformation or clr, where the data in each sample is transformed by taking the logarithm of the the ratio between the count value for each part and the geometric mean count: i.e., for D features in sample X:
+- The negative correlation bias means that any negative correlation observed in compositional data must be treated as suspect because it could arise simply because a different feature (or features) changed their abundance. There is currently no theoretically valid approach to identify true negative correlations in compositional data [@egozcue:AJS].
 
- $clr [x_1, x_2, x_3, \ldots x_D] = [log_2(x_1/gX), log_2(x_2/gX), log_2(x_3/gX) \ldots log_2(x_D/gX)]$,
+- The spurious correlation problem means that we can observe apparent postive correlations simply by chance. I describe recent work that shows that spurious correlation is tractable.
 
- where $gX$ is the geometric mean of the features in sample X. This is the transformation described above.
+- The sub-compositional incoherence of correlation is perhaps the most insidious property, but also the easiest to recognize. Here the correlation depends on the \emph{exact} set of features present in the dataset. If the observed correlations change when the data are subset, then sub-compositional incoherence is in play.
+
+Thus, one major reason to use compositional data methods is that you are more likely to report robust results, and the later practical chapters demonstrate the robustness of a compositional data analysis.
+
+Practically speaking the negative correlation bias, the occurrence of spurious correlation, and the problem of sub-compositional incoherence means that \emph{every microbial correlation network that has ever been published is suspect}, as is \emph{every gene co-occurrence or co-expression network} unless compositionally appropriate compositional association metric was used [@Lovell:2015;@erb:2016;@Quinn206425]. These approaches themselves have limitations and as originally constituted cannot deal with sparse data.  However, recasting the data from count compositions to probability distributions allows these methods to be adapted to sparse data with some success [@bian:2017;@Quinn206425].
 
 
 ## So how can I analyze compositional data?
 
-Fortunately, the analysis of compositional datasets has a well-developed methodology [@pawlowsky2015modeling;@van2013], much of which was worked out in the geological sciences. The following steps, and example code, is a step by step guide to examining a compositional 16S rRNA gene sequencing dataset in a compositional manner. This approach assumes that there is nothing really special about high-throughput sequencing data from the point of view of the analysis. The user should realize however that compositional data analysis is still an area of active research and the types of datasets typically found in high-throughput biology are particularly problematic because they are  high-dimensional datasets that contain many 0 values.
+Much of the high throughput sequencing analysis literature seems to assume that data derived from high throughput sequencing are in some way unique, and that purpose-built tools must be used. However, there is nothing  special about high-throughput sequencing data from the point of view of the analysis. Fortunately, the analysis of compositional datasets has a well-developed methodology [@pawlowsky2015modeling;@van2013], much of which was worked out in the geological sciences.
+
+Atichison [-@Aitchison:1986], Pawlsky-Glahn [-@Pawlowsky-Glahn:2006], and Egozcue [-@egozcue2005], have done much work to develop rigorous approaches to analyze compositional data [@pawlowsky2011compositional]. The essential step is to reduce the data to ratios between the $D$. This step does not move the data from the Simplex but does transform the data on the Simplex  such that the distances between the ratios of the features are linear. The investigator must keep in mind that the distances are between ratios between features, not between counts of features (re-read this several times to wrap your head around it). Several transformations are in common use, but the one I believe is most applicable to HTS data is the centred log-ratio transformation or clr, where the data in each sample is transformed by taking the logarithm of the the ratio between the count value for each part and the geometric mean count: i.e., for D features in sample vector $\vect{X} = [x_1, x_2, x_3, \ldots x_D]$:
+
+\begin{equation}
+ \vect{X}_{clr}  = [log(\frac{x_1}{gX}), log(\frac{x_2}{gX}) \ldots log(\frac{x_D}{gX})]
+\end{equation}
+
+ where $gX$ is the geometric mean of the features in sample $\vect{X}$. The clr transformation is formally equivalent to a matrix of all possible pairwise ratios, but is a more tractable form. The clr transformation is not perfect by any means, but when there are large numbers of features the properties of the clr approach the ideal isometric log-ratio transformation or ilr. In the context of high throughput sequencing, where there are often hundreds or thousands of features the clr and the ilr have nearly indistinguishable properties.
+
+ The properties of the clr transformation are demonstrated in the chapter on data transformations.
 
 
-There are three main data analysis issues that must be acknowledged.
-
-First, the nature of these data are misunderstood. As outlined above, the number of counts observed  per OTU are determined entirely by the capacity of the instrument and provide no information about the number of molecules in the input sample. Recall that both bacterial growth, and PCR are doubling processes and not linear processes, and so would be better modelled as log$_2$ differences.
-
-Understanding that we are dealing with fold-change data is an explicit acknowledgement that the data do not map to normal Euclidian space where differences are linear.  Commonly used statistical tests expect linear differences between values and so are compromised to some degree, often catastrophically[@Aitchison:1986,vandenBoogaart2008320] Therefore, the often-used approaches of converting the OTU count values to proportions or percentages and conducting statistical tests on those values, or of using data reduction strategies such as Principle Component Analysis on the  values are inappropriate because the differences between values are not linear. An alternative approach is to convert the OTU counts to ratios[@Aitchison:1986;@aitchison:2005;@Pawlowsky-Glahn:2006;@pawlowsky2011compositional] which makes the differences between the ratios of values linear, and so allows the use of common statistical tests.
-
-However the user must interpret the output as ratios between feature abundances rather than absolute differences[@pawlowsky2011compositional] This approach is described below.
-
-Second, high throughput sequencing (HTS) data represent samples of an unknown underlying large number of molecules. Thus, there is a large and unappreciated  error of estimation that is problematic when dealing with these data[@fernandes:2013] The high error of estimation often results in false positive identification of differences, in fact, the statistical result can often be explained entirely by sampling variation.  This error is not captured by rarefaction or even acknowledged by other normalization methods and should be estimated and accounted for when deciding what is a significant difference.
-
-Third, 16S rRNA gene sequencing surveys, and similar experiments, contain many variables in each sample. Thus, any analysis that attempts to characterize the individual differences between groups must correct for the many hypotheses that are being tested. This step is often ignored, even in work published in very high profile journals subject to rigorous peer review.
-
-The purpose of these notes is to show  why HTS data for 16S rRNA gene sequencing, and any similar experiments such as RNA-seq, should be treated as ratio data and that it is possible to do so simply. We show that this approach accurately recapitulates the shape of the data for both constrained and unconstrained datasets. We show that converting the data to ratios can accurately model the very high variability at the low count margins, and that rarefaction under-estimates this variability. We use an example from the literature to show how ignoring these factors leads to improper conclusions.

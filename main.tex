@@ -120,7 +120,7 @@
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{24 January, 2018}
+  \date{25 January, 2018}
 
 % Redefines (sub)paragraphs to behave more like sections
 \ifx\paragraph\undefined\else
@@ -203,7 +203,7 @@ I hope you find this useful.
   how and why these instruments generate data that are constrained to a
   constant count.
 \item
-  I next semi-formally introduce compositional data, and show with
+  I next semi-formally introduce compositional data, and describe with
   examples the pathologies associated with this type of data.
 \item
   I then introduce common data transforms and distances used in the high
@@ -246,7 +246,7 @@ microbe as being linked to the condition. In a recent high-profile paper
 by Hsiao et al. (2013), \emph{Bacillus fragilis} was suggested to
 restore the gut microbiome of a mouse autism model from `autistic-like'
 to `normal'. Examination of the dataset shows that the conclusion was
-likely due to chance alone (Gloor and Reid, 2016; Gloor et al., 2016).
+likely due to chance alone (Gloor and Reid, 2016; Gloor et al., 2016b).
 While the autism dataset serves as a facile example, the literature are
 replete with other examples.
 
@@ -449,59 +449,172 @@ ecological and high throughput sequencing literature and the purpose and
 effect of these on simulated data are explored in the section on Data
 Transformations.
 
-\clearpage
+\subsection{Sequencing post
+processing}\label{sequencing-post-processing}
+
+After sequencing fragments are grouped in some way
+
+\subsubsection{Mapping}\label{mapping}
+
+Fragments generated from metagenomic or RNA-seq experiments are aligned
+to reference sequences corresponding to genes, transcripts or genetic
+intervals (generically genes). The total number of fragments mapping to
+a given gene is said to be the read count for that gene and the read
+count for all genes in a system ranges from 0 (no fragments align to
+that gene) to the total number of fragments in the sample. The output
+from these types of experiments is a table of read counts per gene per
+sample.
+
+Expand this to outline methods
+
+\subsubsection{OTU generation}\label{otu-generation}
+
+Fragments generated from tag-sequencing are often merged into
+operational taxonomic units (OTUs) at some predefined percent identity,
+or tabulated by the number of identical fragments observed (ASUs). The
+output from these types of experiments is a table of counts per OTU per
+sample. \clearpage
 
 \section{DNA sequencing data are
 compositions}\label{dna-sequencing-data-are-compositions}
 
-\subsection{Compositional data analysis: more formal
-statement.}\label{compositional-data-analysis-more-formal-statement.}
+\subsection{High throughput sequencing generates compositional
+data}\label{high-throughput-sequencing-generates-compositional-data}
 
-A dataset is defined as compositional if it contains \(D\) multiple
-parts, where each part is non-negative, and the sum of the parts is
-known (Aitchison, 1986,pg25). A composition containing \(D\) parts where
-the sum is 1 can be formally stated as:
-\(C_D = \{(x_1,x_2,x_3, \ldots x_D); x_1\ge 0, x_2\ge 0, x_3 \ge 0, \ldots x_D \ge 0; \sum_{x=1}^{D} = 1\}\).
+In the previous chapter we saw that the capacity of the sequencing
+instrument imposed an upper bound on the total number of fragments that
+could be obtained from a given sequencing run. We also saw that the
+process of sequencing is essentially a random sampling of an environment
+where the environment contains more fragments than can possibly be
+sequenced. Finally, the data obtained are read counts per genetic
+interval (gene or OTU) per sample.
+
+The read counts per sample range from 0 to, as a maximum, the total
+number of reads in the sample. Thus the data are positive integer data
+with an arbitrary maximum. While the data have an arbitrary maximum, the
+majority of current tools assume the data are counts and ignore the
+arbitrary maximum constraint. This assumption is the basis of methods
+grounded in distributions such as the zero inflated Gaussian (ZIG)
+(Paulson et al., 2013), negative binomial (Robinson et al., 2010) and
+Poisson based models (Auer and Doerge, 2011). Recent benchmarking has
+demonstrated that such methods are unpredictable when dealing with
+highly sparse data (Thorsen et al., 2016) and do not control the false
+discovery rate (Gloor et al., 2016a; Hawinkel et al., 2017).
+
+Data of this type are called count compositions, and a number of groups
+have started to work on developing appropriate methods to deal with high
+throughput datasets as count compostions (Egozcue et al., 2018; Erb and
+Notredame, 2016; Erb et al., 2017; Fernandes et al., 2013, 2014;
+Friedman and Alm, 2012; Gloor and Reid, 2016; Gloor et al., 2016b; Kaul
+et al., 2017; Kurtz et al., 2015; Lovell et al., 2015; Mandal et al.,
+2015; Quinn et al., 2017a, 2017b; Silverman et al., 2017; Tsilimigras
+and Fodor, 2016; Washburne et al., 2017).
+
+So what is compositional data, and what are its properties with respect
+to high throughput sequencing that make this an important issue?
+
+\subsection{Compositional data}\label{compositional-data}
+
+Data from high throughput sequencing have the following properties; the
+data are counts, the data are non-negative, and the data has an upper
+bound imposed by the instrument because there is a limit to the number
+of fragments (and hence gene or OTU counts) that can be observed. This
+fits with the definition of compositional data: the data contains \(D\)
+features (OTUs, genes, etc), where the count of each feature is
+non-negative, and the sum of the parts is known (Aitchison, 1986, pg25).
+Note that the data do not have to sum to a predetermined amount, it is
+sufficient that the sum of the parts be known and not be able to be
+exceeded.
+
+A vector containing \(D\) features where the sum is 1 can be formally
+stated as:
+\(\vec{X} = \{(x_1,x_2,x_3, \ldots x_D); x_i\ge 0; \sum_{x=1}^{D} = 1\}\).
 The sum of the parts is usually set to 1 or 100, but can take any value;
 i.e., any composition can be scaled to any arbitrary sum such as a ppm.
-It is important to know that the values of the parts of compositional
-datasets are constrained because of the constant sum. The constant sum
-constraint causes the parts to have a negative correlation bias since an
-increase in the value of one part must be offset by a decrease in value
-of one or more other parts. Thus any correlation-based analysis is
-invalid in these datasets, as originally noted by Pearson(1897). In
-addition, compositional datasets have the property that they are
-described by \(D-1\) observations if the sum of the parts is known
-(Aitchison, 1986). In other words, if we know that all parts sum to 1,
-then the last part can be known by subtracting the sum of all other
-parts from 1, i.e., \(x_D = 1-\sum_{x=1}^{D-1}\). Graphically, this
-means that compositions inhabit a space called the Aitchison simplex
-that contains 1 fewer dimensions than the number of parts. The distances
-between parts on the Aitchison simplex are not linear, especially at the
-boundaries. This is important because all common statistical tests
-assume a that differences between parts are linear (or additive). Thus,
+The property of scaling to any arbitrary value is named an equivalence
+class and compositional data are equivalence classes (Barceló-Vidal et
+al., 2001). In the lexicon of high throughput sequencing the vector is
+the sample and the features are the OTUs or genes or genomic intervals.
+The total sum is the total number of fragments observed for the sample.
+
+Compositional data have a number of built-in pathologies: a negative
+correlation bias, sub-compositional incoherence, and spurious
+correlations. A proper analysis of compositional data must account for
+these pathologies, and in addition be scale invariant, permutation
+invariant, and exhibit subcompositional coherence (or at least
+sub-compositional dominance).
+
+More formally, compositional datasets have the property that they are
+described by \(D-1\) observations (Aitchison, 1986). In other words, if
+we know that all parts sum to 1, then the last part can be known by
+subtracting the sum of all other parts from 1, i.e.,
+\(x_D = 1-\sum_{x=1}^{D-1}\). Graphically, this means that compositions
+inhabit a space called a Simplex that contains 1 fewer dimensions than
+the number of parts. The distances between parts on the Simplex are not
+linear. This is important because all parametric statistical tests
+assume that differences between parts are linear (or additive). Thus,
 while standard tests will produce output, the output will be misleading
-because distances on the simplex are non-linear and
-bounded(Martín-Fernández et al., 1998).
+because distances on the simplex are non-linear and bounded
+(Martín-Fernández et al., 1998). The chapter on Data Transformations
+contains an intuitive demonstration of how data is moved to the Simplex.
 
-\subsubsection{Sub-compositions:}
+\subsubsection{Negative correlation bias in
+compositions}\label{negative-correlation-bias-in-compositions}
 
-\textasciitilde{}Compositional data also exhibit the unusual property
-that the examination of a sub-composition of these data will provide
-different answers for those taxa in common in the full and
-sub-composition (Aitchison, 1986). This is problematic because 16S rRNA
-gene sequencing experimental designs are \emph{always} sub-compositions.
-Inspection of papers in the literature provide many examples. For
-example, it is common practice to discard rare OTU species prior to
-analysis and to re-normalize by dividing the counts for the remaining
-OTUs by the new sample sum. It is also common to use only one or a few
-taxonomic groupings to determine differences between experimental
-conditions. In the case of RNA-seq only the mRNA or miRNA is sequenced.
-All of these practices expose the investigator to the problem of
-non-coherence between sub-compositions. Formally, the approach used here
-is not sub-compositionally coherent, but it is a reasonable
-approximation as long as the majority of OTUs are invariant or exhibit
-stochastic fluctuations.
+\begin{picture}(100,50)(0,0)
+    \put(50,25){V}
+    \put(142,25){M}
+    \put(100,5){\vector(0,1){12} }
+    \put(50,20){\line(1,0){100}}
+\end{picture}
+
+The values of the parts of compositional datasets are constrained
+because of the constant sum, and this constraint has been known for a
+very long time. The features in a composition have a negative
+correlation bias since an increase in the value of one part must be
+offset by a decrease in value of one or more other parts. In the
+illustration above, we see that `V' and `M' are perfectly balanced on
+the fulcrum because they have the same mass. If M becomes heavier, then
+V will rise even though the mass of V has not changed. The same
+principle operates in compositional data. If V is the amount of money
+spend on vegetables, and M is the amount of money spent on meat, and the
+total food budget is a constant, then the only way that more meat would
+be consumed would be to spend less on vegetables. Therefore, the amount
+of money spent on V and M will be perfectly negatively correlated if the
+total food budget is constrained. This example generalizes to any number
+of items in the shopping basket as long as the total budget is
+constrained. When there are more items, then an increase in one item
+(say shoes) must be offset by a decrease in another item, but it could
+be a decrease in meat, vegetables or both.
+
+\subsubsection{Spurious correlations:}\label{spurious-correlations}
+
+In addition to a negative correlation bias, compositional data has the
+additional problem of spurious correlation (Pearson, 1897); in fact
+spurious correlation was the first troubling issue identified with
+compositional data. This phenomenon is best illustrated with the
+following example from Lovell et. al (2015), where they show how simply
+dividing two sets of random numbers (say abundances of OTU1 and OTU2),
+by a third set of random numbers (say abundances of OTU3) results in a
+strong correlation. Note that this phenomenon depends only on there
+being a common denominator.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{n.obs <-}\StringTok{ }\DecValTok{100}
+\NormalTok{OTU.df <-}\StringTok{ }\KeywordTok{data.frame}\NormalTok{(}
+    \DataTypeTok{OTU1=}\KeywordTok{rnorm}\NormalTok{(n.obs, }\DataTypeTok{mean=}\DecValTok{10}\NormalTok{, }\DataTypeTok{sd=}\DecValTok{1}\NormalTok{),}
+    \DataTypeTok{OTU2=}\KeywordTok{rnorm}\NormalTok{(n.obs, }\DataTypeTok{mean=}\DecValTok{10}\NormalTok{, }\DataTypeTok{sd=}\DecValTok{1}\NormalTok{),}
+    \DataTypeTok{OTU3=}\KeywordTok{rnorm}\NormalTok{(n.obs, }\DataTypeTok{mean=}\DecValTok{30}\NormalTok{, }\DataTypeTok{sd=}\DecValTok{4}\NormalTok{))}
+\NormalTok{OTU.df <-}\StringTok{ }\KeywordTok{transform}\NormalTok{(OTU.df,}
+    \DataTypeTok{OTU1.over.OTU3=} \NormalTok{OTU1/OTU3,}
+    \DataTypeTok{OTU2.over.OTU3=} \NormalTok{OTU2/OTU3)}
+\KeywordTok{plot}\NormalTok{(OTU.df$OTU1.over.OTU3,}
+    \NormalTok{OTU.df$OTU2.over.OTU3, }\DataTypeTok{pch=}\DecValTok{19}\NormalTok{,}
+    \DataTypeTok{cex=}\FloatTok{0.3}\NormalTok{,}\DataTypeTok{xlab=}\StringTok{"OTU1/OTU3"}\NormalTok{,}
+    \DataTypeTok{ylab=}\StringTok{"OTU2/OTU3"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
 
 \begin{figure}[htbp]
 \centering
@@ -516,117 +629,111 @@ Information of Lovell (2015) for a more complete description of this
 phenomenon.}
 \end{figure}
 
-\subsection{Spurious correlations:}\label{spurious-correlations}
+\subsubsection{Sub-compositions}\label{sub-compositions}
 
-Finally, it is important to know that compositional data has the
-additional problem of spurious correlation (Pearson, 1897), and in fact
-this was the first troubling issue identified with compositional data.
-This phenomenon is best illustrated with the following example from
-Lovell et. al (2015), where they show how simply dividing two sets of
-random numbers (say abundances of OTU1 and OTU2), by a third set of
-random numbers (say abundances of OTU3) results in a strong correlation.
-Note that this phenomenon depends only on there being a common
-denominator.
+Compositional data have the third property of a sub-composition
+incoherence of correlation metrics. That is,
+\emph{correlations calculated on compositional datasets are unique to the particular dataset chosen}
+(Aitchison, 1986). This is problematic because high throughput
+sequencing experimental designs are \emph{always} sub-compositions.
+Inspection of papers in the literature provide many examples. For
+example, in the 16S rRNA gene sequencing literature it is common
+practice to discard rare OTU species prior to analysis and to
+re-normalize by dividing the counts for the remaining OTUs by the new
+sample sum. It is also common to use only one or a few taxonomic
+groupings to determine differences between experimental conditions. In
+the case of RNA-seq only the fraction of RNA of interest is sequenced,
+usually mRNA but other sub-fractions such as miRNA may be sequenced. All
+of these practices expose the investigator to the problem of
+non-coherence between sub-compositions. We must use
+compositionally-appropriate measures of correlation---more formally, we
+are attempting to find features that are compositionally associated.
+Compositional association is a more restricted measure of correlation
+and is explained more completely in the chapter on data transformations.
 
-Practically speaking this means that
-\emph{every microbial correlation network that has ever been published is suspect}
-unless it was determined using SPARCC \cite{Friedman:2012} or SPIEC-EASI
-(Kurtz et al., 2015) or the \(\phi\) metric (Lovell et al., 2015). These
-approaches themselves have limitations, both SPARCC and SPIEC-EASI
-assume sparse data, and the \(\phi\) metric as originally constituted
-cannot deal with sparse data. Lovell is in the process of producing an R
-package for the compositionally appropriate examination of correlations
-(personal communication), and below we show one strategy by which the
-\(\phi\) metric can be adapted to sparse data.
+To summarize, compositional data has the following pathologies:
 
-Atichison (1986), Pawlsky-Glahn (2006), and Egozcue (2005), have done
-much work to develop rigorous approaches to analyze compositional data
-(Pawlowsky-Glahn and Buccianti, 2011). The essential step is to reduce
-the data to ratios between the \(D\) parts as outlined above. This step
-does not move the data from the Simplex but does transform the data on
-the Simplex such that the distances between the ratios of the features
-are linear. The investigator must keep in mind that the distances are
-between ratios, not between counts. Several transformations are in
-common use, but the one most applicable to HTS data is the centred
-log-ratio transformation or clr, where the data in each sample is
-transformed by taking the logarithm of the the ratio between the count
-value for each part and the geometric mean count: i.e., for D features
-in sample X:
+\begin{itemize}
+\item
+  The negative correlation bias means that any negative correlation
+  observed in compositional data must be treated as suspect because it
+  could arise simply because a different feature (or features) changed
+  their abundance. There is currently no theoretically valid approach to
+  identify true negative correlations in compositional data (Egozcue et
+  al., 2018).
+\item
+  The spurious correlation problem means that we can observe apparent
+  postive correlations simply by chance. I describe recent work that
+  shows that spurious correlation is tractable.
+\item
+  The sub-compositional incoherence of correlation is perhaps the most
+  insidious property, but also the easiest to recognize. Here the
+  correlation depends on the \emph{exact} set of features present in the
+  dataset. If the observed correlations change when the data are subset,
+  then sub-compositional incoherence is in play.
+\end{itemize}
 
-\(clr [x_1, x_2, x_3, \ldots x_D] = [log_2(x_1/gX), log_2(x_2/gX), log_2(x_3/gX) \ldots log_2(x_D/gX)]\),
+Thus, one major reason to use compositional data methods is that you are
+more likely to report robust results, and the later practical chapters
+demonstrate the robustness of a compositional data analysis.
 
-where \(gX\) is the geometric mean of the features in sample X. This is
-the transformation described above.
+Practically speaking the negative correlation bias, the occurrence of
+spurious correlation, and the problem of sub-compositional incoherence
+means that
+\emph{every microbial correlation network that has ever been published is suspect},
+as is \emph{every gene co-occurrence or co-expression network} unless
+compositionally appropriate compositional association metric was used
+(Erb and Notredame, 2016; Lovell et al., 2015; Quinn et al., 2017a).
+These approaches themselves have limitations and as originally
+constituted cannot deal with sparse data. However, recasting the data
+from count compositions to probability distributions allows these
+methods to be adapted to sparse data with some success (Bian et al.;
+Quinn et al., 2017a).
 
 \subsection{So how can I analyze compositional
 data?}\label{so-how-can-i-analyze-compositional-data}
 
-Fortunately, the analysis of compositional datasets has a well-developed
-methodology (Pawlowsky-Glahn et al., 2015; Van den Boogaart and
-Tolosana-Delgado, 2013), much of which was worked out in the geological
-sciences. The following steps, and example code, is a step by step guide
-to examining a compositional 16S rRNA gene sequencing dataset in a
-compositional manner. This approach assumes that there is nothing really
-special about high-throughput sequencing data from the point of view of
-the analysis. The user should realize however that compositional data
-analysis is still an area of active research and the types of datasets
-typically found in high-throughput biology are particularly problematic
-because they are high-dimensional datasets that contain many 0 values.
+Much of the high throughput sequencing analysis literature seems to
+assume that data derived from high throughput sequencing are in some way
+unique, and that purpose-built tools must be used. However, there is
+nothing special about high-throughput sequencing data from the point of
+view of the analysis. Fortunately, the analysis of compositional
+datasets has a well-developed methodology (Pawlowsky-Glahn et al., 2015;
+Van den Boogaart and Tolosana-Delgado, 2013), much of which was worked
+out in the geological sciences.
 
-There are three main data analysis issues that must be acknowledged.
+Atichison (1986), Pawlsky-Glahn (2006), and Egozcue (2005), have done
+much work to develop rigorous approaches to analyze compositional data
+(Pawlowsky-Glahn and Buccianti, 2011). The essential step is to reduce
+the data to ratios between the \(D\). This step does not move the data
+from the Simplex but does transform the data on the Simplex such that
+the distances between the ratios of the features are linear. The
+investigator must keep in mind that the distances are between ratios
+between features, not between counts of features (re-read this several
+times to wrap your head around it). Several transformations are in
+common use, but the one I believe is most applicable to HTS data is the
+centred log-ratio transformation or clr, where the data in each sample
+is transformed by taking the logarithm of the the ratio between the
+count value for each part and the geometric mean count: i.e., for D
+features in sample vector \(\vect{X} = [x_1, x_2, x_3, \ldots x_D]\):
 
-First, the nature of these data are misunderstood. As outlined above,
-the number of counts observed per OTU are determined entirely by the
-capacity of the instrument and provide no information about the number
-of molecules in the input sample. Recall that both bacterial growth, and
-PCR are doubling processes and not linear processes, and so would be
-better modelled as log\(_2\) differences.
+\begin{equation}
+ \vect{X}_{clr}  = [log(\frac{x_1}{gX}), log(\frac{x_2}{gX}) \ldots log(\frac{x_D}{gX})]
+\end{equation}
 
-Understanding that we are dealing with fold-change data is an explicit
-acknowledgement that the data do not map to normal Euclidian space where
-differences are linear. Commonly used statistical tests expect linear
-differences between values and so are compromised to some degree, often
-catastrophically(Aitchison, 1986,vandenBoogaart2008320) Therefore, the
-often-used approaches of converting the OTU count values to proportions
-or percentages and conducting statistical tests on those values, or of
-using data reduction strategies such as Principle Component Analysis on
-the values are inappropriate because the differences between values are
-not linear. An alternative approach is to convert the OTU counts to
-ratios(Aitchison, 1986; Aitchison and J. Egozcue, 2005; Pawlowsky-Glahn
-and Buccianti, 2011; Pawlowsky-Glahn and Egozcue, 2006) which makes the
-differences between the ratios of values linear, and so allows the use
-of common statistical tests.
+where \(gX\) is the geometric mean of the features in sample
+\(\vect{X}\). The clr transformation is formally equivalent to a matrix
+of all possible pairwise ratios, but is a more tractable form. The clr
+transformation is not perfect by any means, but when there are large
+numbers of features the properties of the clr approach the ideal
+isometric log-ratio transformation or ilr. In the context of high
+throughput sequencing, where there are often hundreds or thousands of
+features the clr and the ilr have nearly indistinguishable properties.
 
-However the user must interpret the output as ratios between feature
-abundances rather than absolute differences(Pawlowsky-Glahn and
-Buccianti, 2011) This approach is described below.
+The properties of the clr transformation are demonstrated in the chapter
+on data transformations.
 
-Second, high throughput sequencing (HTS) data represent samples of an
-unknown underlying large number of molecules. Thus, there is a large and
-unappreciated error of estimation that is problematic when dealing with
-these data(Fernandes et al., 2013) The high error of estimation often
-results in false positive identification of differences, in fact, the
-statistical result can often be explained entirely by sampling
-variation. This error is not captured by rarefaction or even
-acknowledged by other normalization methods and should be estimated and
-accounted for when deciding what is a significant difference.
-
-Third, 16S rRNA gene sequencing surveys, and similar experiments,
-contain many variables in each sample. Thus, any analysis that attempts
-to characterize the individual differences between groups must correct
-for the many hypotheses that are being tested. This step is often
-ignored, even in work published in very high profile journals subject to
-rigorous peer review.
-
-The purpose of these notes is to show why HTS data for 16S rRNA gene
-sequencing, and any similar experiments such as RNA-seq, should be
-treated as ratio data and that it is possible to do so simply. We show
-that this approach accurately recapitulates the shape of the data for
-both constrained and unconstrained datasets. We show that converting the
-data to ratios can accurately model the very high variability at the low
-count margins, and that rarefaction under-estimates this variability. We
-use an example from the literature to show how ignoring these factors
-leads to improper conclusions. \clearpage
+\clearpage
 
 \section{Data transforms in high throughput
 sequencing}\label{data-transforms-in-high-throughput-sequencing}
@@ -1383,6 +1490,64 @@ conversion of each sample from a count to a proportion.
 
 \subsection{Jensen-Shannon Divergence}\subsection{Aitchison Distance}
 
+\section{Exploring compositional data: the compositional
+biplot}\label{exploring-compositional-data-the-compositional-biplot}
+
+There are three main data analysis issues that must be acknowledged.
+
+First, the nature of these data are misunderstood. As outlined above,
+the number of counts observed per OTU are determined entirely by the
+capacity of the instrument and provide no information about the number
+of molecules in the input sample. Recall that both bacterial growth, and
+PCR are doubling processes and not linear processes, and so would be
+better modelled as log\(_2\) differences.
+
+Understanding that we are dealing with fold-change data is an explicit
+acknowledgement that the data do not map to normal Euclidian space where
+differences are linear. Commonly used statistical tests expect linear
+differences between values and so are compromised to some degree, often
+catastrophically(Aitchison, 1986,vandenBoogaart2008320) Therefore, the
+often-used approaches of converting the OTU count values to proportions
+or percentages and conducting statistical tests on those values, or of
+using data reduction strategies such as Principle Component Analysis on
+the values are inappropriate because the differences between values are
+not linear. An alternative approach is to convert the OTU counts to
+ratios(Aitchison, 1986; Aitchison and J. Egozcue, 2005; Pawlowsky-Glahn
+and Buccianti, 2011; Pawlowsky-Glahn and Egozcue, 2006) which makes the
+differences between the ratios of values linear, and so allows the use
+of common statistical tests.
+
+However the user must interpret the output as ratios between feature
+abundances rather than absolute differences(Pawlowsky-Glahn and
+Buccianti, 2011) This approach is described below.
+
+Second, high throughput sequencing (HTS) data represent samples of an
+unknown underlying large number of molecules. Thus, there is a large and
+unappreciated error of estimation that is problematic when dealing with
+these data(Fernandes et al., 2013) The high error of estimation often
+results in false positive identification of differences, in fact, the
+statistical result can often be explained entirely by sampling
+variation. This error is not captured by rarefaction or even
+acknowledged by other normalization methods and should be estimated and
+accounted for when deciding what is a significant difference.
+
+Third, 16S rRNA gene sequencing surveys, and similar experiments,
+contain many variables in each sample. Thus, any analysis that attempts
+to characterize the individual differences between groups must correct
+for the many hypotheses that are being tested. This step is often
+ignored, even in work published in very high profile journals subject to
+rigorous peer review.
+
+The purpose of these notes is to show why HTS data for 16S rRNA gene
+sequencing, and any similar experiments such as RNA-seq, should be
+treated as ratio data and that it is possible to do so simply. We show
+that this approach accurately recapitulates the shape of the data for
+both constrained and unconstrained datasets. We show that converting the
+data to ratios can accurately model the very high variability at the low
+count margins, and that rarefaction under-estimates this variability. We
+use an example from the literature to show how ignoring these factors
+leads to improper conclusions.
+
 \clearpage
 
 \section*{References}\label{references}
@@ -1407,21 +1572,61 @@ and Engstrand, L. (2008). Comparative analysis of human gut microbiota
 by barcoded pyrosequencing. \emph{PLoS One} 3, e2836.
 \href{http://doi.org/10.1371/journal.pone.0002836}{doi:10.1371/journal.pone.0002836}.
 
+\hyperdef{}{ref-auer:2011}{\label{ref-auer:2011}}
+Auer, P. L., and Doerge, R. W. (2011). A two-stage Poisson model for
+testing RNA-seq data. \emph{Statistical applications in genetics and
+molecular biology} 10.
+
 \hyperdef{}{ref-barcelo:2001}{\label{ref-barcelo:2001}}
 Barceló-Vidal, C., Martín-Fernández, J. A., and Pawlowsky-Glahn, V.
 (2001). ``Mathematical foundations of compositional data analysis,'' in
 \emph{Proceedings of IAMG}, 1--20.
+
+\hyperdef{}{ref-bian:2017}{\label{ref-bian:2017}}
+Bian, G., Gloor, G. B., Gong, A., Jia, C., Zhang, W., Hu, J., et al. ().
+The gut microbiota of healthy aged chinese is similar to that of the
+healthy young. \emph{mSphere} 2, e00327--17.
+\href{http://doi.org/10.1128/mSphere.00327-17}{doi:10.1128/mSphere.00327-17}.
+
+\hyperdef{}{ref-egozcue:AJS}{\label{ref-egozcue:AJS}}
+Egozcue, J. J., Pawlowsky-Glahn, V., and Gloor, G. B. (2018). Linear
+association in compositional data analysis. \emph{Austrian Journal of
+Statistics} in press.
 
 \hyperdef{}{ref-egozcue2005}{\label{ref-egozcue2005}}
 Egozcue, J., and Pawlowsky-Glahn, V. (2005). Groups of parts and their
 balances in compositional data analysis. \emph{Mathematical Geology} 37,
 795--828.
 
+\hyperdef{}{ref-erb:2016}{\label{ref-erb:2016}}
+Erb, I., and Notredame, C. (2016). How should we measure proportionality
+on relative gene expression data? \emph{Theory in Biosciences} 135,
+21--36.
+
+\hyperdef{}{ref-Erb134536}{\label{ref-Erb134536}}
+Erb, I., Quinn, T., Lovell, D., and Notredame, C. (2017). Differential
+proportionality - a normalization-free approach to differential gene
+expression. \emph{bioRxiv}.
+\href{http://doi.org/10.1101/134536}{doi:10.1101/134536}.
+
 \hyperdef{}{ref-fernandes:2013}{\label{ref-fernandes:2013}}
 Fernandes, A. D., Macklaim, J. M., Linn, T. G., Reid, G., and Gloor, G.
 B. (2013). ANOVA-like differential expression (aLDEx) analysis for mixed
 population rNA-seq. \emph{PLoS One} 8, e67019.
 \href{http://doi.org/10.1371/journal.pone.0067019}{doi:10.1371/journal.pone.0067019}.
+
+\hyperdef{}{ref-fernandes:2014}{\label{ref-fernandes:2014}}
+Fernandes, A. D., Reid, J. N., Macklaim, J. M., McMurrough, T. A.,
+Edgell, D. R., and Gloor, G. B. (2014). Unifying the analysis of
+high-throughput sequencing datasets: Characterizing RNA-seq, 16S rRNA
+gene sequencing and selective growth experiments by compositional data
+analysis. \emph{Microbiome} 2, 15.1--15.13.
+\href{http://doi.org/10.1186/2049-2618-2-15}{doi:10.1186/2049-2618-2-15}.
+
+\hyperdef{}{ref-Friedman:2012}{\label{ref-Friedman:2012}}
+Friedman, J., and Alm, E. J. (2012). Inferring correlation networks from
+genomic survey data. \emph{PLoS Comput Biol} 8, e1002687.
+\href{http://doi.org/10.1371/journal.pcbi.1002687}{doi:10.1371/journal.pcbi.1002687}.
 
 \hyperdef{}{ref-Gloor:2016cjm}{\label{ref-Gloor:2016cjm}}
 Gloor, G. B., and Reid, G. (2016). Compositional analysis: A valid
@@ -1436,10 +1641,17 @@ sequencing of combinatorial sequence-tagged PCR products. \emph{PLoS
 One} 5, e15406.
 \href{http://doi.org/10.1371/journal.pone.0015406}{doi:10.1371/journal.pone.0015406}.
 
+\hyperdef{}{ref-gloorAJS:2016}{\label{ref-gloorAJS:2016}}
+Gloor, G. B., Macklaim, J. M., Vu, M., and Fernandes, A. D. (2016a).
+Compositional uncertainty should not be ignored in high-throughput
+sequencing data analysis. \emph{Austrian Journal of Statistics} 45,
+73--87.
+\href{http://doi.org/doi:10.17713/ajs.v45i4.122}{doi:doi:10.17713/ajs.v45i4.122}.
+
 \hyperdef{}{ref-gloor2016s}{\label{ref-gloor2016s}}
-Gloor, G. B., Wu, J. R., Pawlowsky-Glahn, V., and Egozcue, J. J. (2016).
-It's all relative: Analyzing microbiome data as compositions. \emph{Ann
-Epidemiol} 26, 322--9.
+Gloor, G. B., Wu, J. R., Pawlowsky-Glahn, V., and Egozcue, J. J.
+(2016b). It's all relative: Analyzing microbiome data as compositions.
+\emph{Ann Epidemiol} 26, 322--9.
 \href{http://doi.org/10.1016/j.annepidem.2016.03.003}{doi:10.1016/j.annepidem.2016.03.003}.
 
 \hyperdef{}{ref-Gorzelak:2015aa}{\label{ref-Gorzelak:2015aa}}
@@ -1448,6 +1660,11 @@ Gibson, D. L. (2015). Methods for improving human gut microbiome data by
 reducing variability through sample processing and storage of stool.
 \emph{PLoS One} 10, e0134802.
 \href{http://doi.org/10.1371/journal.pone.0134802}{doi:10.1371/journal.pone.0134802}.
+
+\hyperdef{}{ref-hawinkel2017}{\label{ref-hawinkel2017}}
+Hawinkel, S., Mattiello, F., Bijnens, L., and Thas, O. (2017). A broken
+promise: Microbiome differential abundance methods do not control the
+false discovery rate. \emph{Briefings in Bioinformatics}, bbx104.
 
 \hyperdef{}{ref-Horner-Devine:2004aa}{\label{ref-Horner-Devine:2004aa}}
 Horner-Devine, M. C., Lage, M., Hughes, J. B., and Bohannan, B. J. M.
@@ -1461,6 +1678,12 @@ T., et al. (2013). Microbiota modulate behavioral and physiological
 abnormalities associated with neurodevelopmental disorders. \emph{Cell}
 155, 1451--63.
 \href{http://doi.org/10.1016/j.cell.2013.11.024}{doi:10.1016/j.cell.2013.11.024}.
+
+\hyperdef{}{ref-Kaul:2017aa}{\label{ref-Kaul:2017aa}}
+Kaul, A., Mandal, S., Davidov, O., and Peddada, S. D. (2017). Analysis
+of microbiome data in the presence of excess zeros. \emph{Front
+Microbiol} 8, 2114.
+\href{http://doi.org/10.3389/fmicb.2017.02114}{doi:10.3389/fmicb.2017.02114}.
 
 \hyperdef{}{ref-Kurtz:2015}{\label{ref-Kurtz:2015}}
 Kurtz, Z. D., Müller, C. L., Miraldi, E. R., Littman, D. R., Blaser, M.
@@ -1498,6 +1721,12 @@ Lozupone, C., Lladser, M. E., Knights, D., Stombaugh, J., and Knight, R.
 comparison. \emph{ISME J} 5, 169--72.
 \href{http://doi.org/10.1038/ismej.2010.133}{doi:10.1038/ismej.2010.133}.
 
+\hyperdef{}{ref-ancom:2015}{\label{ref-ancom:2015}}
+Mandal, S., Van Treuren, W., White, R. A., Eggesbø, M., Knight, R., and
+Peddada, S. D. (2015). Analysis of composition of microbiomes: A novel
+method for studying microbial composition. \emph{Microb Ecol Health Dis}
+26, 27663.
+
 \hyperdef{}{ref-martin1998measures}{\label{ref-martin1998measures}}
 Martín-Fernández, J., Barceló-Vidal, C., Pawlowsky-Glahn, V., Buccianti,
 A., Nardi, G., and Potenza, R. (1998). Measures of difference for
@@ -1527,6 +1756,12 @@ design unveils opportunities for large-scale sample multiplexing.
 \emph{Nucleic Acids Res} 35, e130.
 \href{http://doi.org/10.1093/nar/gkm760}{doi:10.1093/nar/gkm760}.
 
+\hyperdef{}{ref-Paulson:2013aa}{\label{ref-Paulson:2013aa}}
+Paulson, J. N., Stine, O. C., Bravo, H. C., and Pop, M. (2013).
+Differential abundance analysis for microbial marker-gene surveys.
+\emph{Nat Methods} 10, 1200--2.
+\href{http://doi.org/10.1038/nmeth.2658}{doi:10.1038/nmeth.2658}.
+
 \hyperdef{}{ref-pawlowsky2011compositional}{\label{ref-pawlowsky2011compositional}}
 Pawlowsky-Glahn, V., and Buccianti, A. (2011). \emph{Compositional data
 analysis: Theory and applications}. John Wiley \& Sons.
@@ -1547,17 +1782,49 @@ evolution. -- on a form of spurious correlation which may arise when
 indices are used in the measurement of organs. \emph{Proceedings of the
 Royal Society of London} 60, 489--498.
 
+\hyperdef{}{ref-Quinn206425}{\label{ref-Quinn206425}}
+Quinn, T. P., Erb, I., Richardson, M. F., and Crowley, T. M. (2017a).
+Understanding sequencing data as compositions: An outlook and review.
+\emph{bioRxiv}.
+\href{http://doi.org/10.1101/206425}{doi:10.1101/206425}.
+
+\hyperdef{}{ref-Quinn:2017}{\label{ref-Quinn:2017}}
+Quinn, T., Richardson, M. F., Lovell, D., and Crowley, T. (2017b).
+Propr: An R-package for identifying proportionally abundant features
+using compositional data analysis. \emph{bioRxiv}.
+\href{http://doi.org/10.1101/104935}{doi:10.1101/104935}.
+
 \hyperdef{}{ref-Robinson:2010a}{\label{ref-Robinson:2010a}}
 Robinson, M. D., and Oshlack, A. (2010). A scaling normalization method
 for differential expression analysis of RNA-seq data. \emph{Genome Biol}
 11, R25.1--R25.9.
 \href{http://doi.org/10.1186/gb-2010-11-3-r25}{doi:10.1186/gb-2010-11-3-r25}.
 
+\hyperdef{}{ref-Robinson:2010}{\label{ref-Robinson:2010}}
+Robinson, M. D., McCarthy, D. J., and Smyth, G. K. (2010). EdgeR: A
+bioconductor package for differential expression analysis of digital
+gene expression data. \emph{Bioinformatics} 26, 139--40.
+\href{http://doi.org/10.1093/bioinformatics/btp616}{doi:10.1093/bioinformatics/btp616}.
+
 \hyperdef{}{ref-Silverman:2017aa}{\label{ref-Silverman:2017aa}}
 Silverman, J. D., Washburne, A. D., Mukherjee, S., and David, L. A.
 (2017). A phylogenetic transform enhances analysis of compositional
 microbiota data. \emph{Elife} 6, 21887.
 \href{http://doi.org/10.7554/eLife.21887}{doi:10.7554/eLife.21887}.
+
+\hyperdef{}{ref-Thorsen:2016aa}{\label{ref-Thorsen:2016aa}}
+Thorsen, J., Brejnrod, A., Mortensen, M., Rasmussen, M. A., Stokholm,
+J., Al-Soud, W. A., et al. (2016). Large-scale benchmarking reveals
+false discoveries and count transformation sensitivity in 16S rRNA gene
+amplicon data analysis methods used in microbiome studies.
+\emph{Microbiome} 4, 62.
+\href{http://doi.org/10.1186/s40168-016-0208-8}{doi:10.1186/s40168-016-0208-8}.
+
+\hyperdef{}{ref-Tsilimigras:2016aa}{\label{ref-Tsilimigras:2016aa}}
+Tsilimigras, M. C. B., and Fodor, A. A. (2016). Compositional data
+analysis of the microbiome: Fundamentals, tools, and challenges.
+\emph{Ann Epidemiol} 26, 330--5.
+\href{http://doi.org/10.1016/j.annepidem.2016.03.002}{doi:10.1016/j.annepidem.2016.03.002}.
 
 \hyperdef{}{ref-van2013}{\label{ref-van2013}}
 Van den Boogaart, K. G., and Tolosana-Delgado, R. (2013).
@@ -1568,6 +1835,13 @@ Vandesompele, J., De Preter, K., Pattyn, F., Poppe, B., Van Roy, N., De
 Paepe, A., et al. (2002). Accurate normalization of real-time
 quantitative rT-pCR data by geometric averaging of multiple internal
 control genes. \emph{Genome Biol} 3, RESEARCH0034.
+
+\hyperdef{}{ref-Washburne:2017aa}{\label{ref-Washburne:2017aa}}
+Washburne, A. D., Silverman, J. D., Leff, J. W., Bennett, D. J., Darcy,
+J. L., Mukherjee, S., et al. (2017). Phylogenetic factorization of
+compositional data yields lineage-level associations in microbiome
+datasets. \emph{PeerJ} 5, e2969.
+\href{http://doi.org/10.7717/peerj.2969}{doi:10.7717/peerj.2969}.
 
 \hyperdef{}{ref-Weiss:2017aa}{\label{ref-Weiss:2017aa}}
 Weiss, S., Xu, Z. Z., Peddada, S., Amir, A., Bittinger, K., Gonzalez,

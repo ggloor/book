@@ -54,4 +54,16 @@ Two or more independent libraries are mixed together into a multiplex library, a
 
 The apparent solution to the sequencing depth problem is to normalize the read count values across samples in some way. One method of normalization to is by subsampling, often termed rarefaction, as this is observed to reduce the influence of sequencing depth on variation in $\alpha$ and $\beta$ diversity metrics [@Horner-Devine:2004aa;@Weiss:2017aa]. Another is to convert the data to proportions or percentages; these latter values are widely spoken of in the literature as `relative abundances'. Subsampling is frequently used to estimate the associated sampling error. Some groups have begun advocating the use of  normalization methods prevalent in the RNA-seq field[@McMurdie:2014a] but still treat the data as point estimates of the true abundance. There are many other normalizations that are used in the ecological and high throughput sequencing literature and the purpose and effect of these on simulated data are explored in the section on Data Transformations.
 
+## Sequencing post processing
 
+After sequencing fragments are grouped in some way
+
+### Mapping
+
+Fragments generated from metagenomic or RNA-seq experiments are aligned to reference sequences corresponding to genes, transcripts or genetic intervals (generically genes). The total number of fragments mapping to a given gene is said to be the read count for that gene and the read count for all genes in a system ranges from 0 (no fragments align to that gene) to the total number of fragments in the sample. The output from these types of experiments is a table of read counts per gene per sample.
+
+Expand this to outline methods
+
+### OTU generation
+
+Fragments generated from tag-sequencing are often merged into operational taxonomic units (OTUs) at some predefined percent identity, or tabulated by the number of identical fragments observed (ASUs). The output from these types of experiments is a table of counts per OTU per sample.
