@@ -1,4 +1,4 @@
-# The nature of sequencing data
+# The nature of sequencing data {#sequencing}
 
 The human microbiome project has initiated the large-scale culture-independent analysis of microbial communities, and transcriptome analysis has led to the study of the transcriptional response to many different disease and ecological states.
 

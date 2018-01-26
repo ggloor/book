@@ -2,7 +2,7 @@
 
 ## High throughput sequencing generates compositional data
 
-In the previous chapter we saw that the capacity of the sequencing instrument imposed an upper bound on the total number of fragments that could be obtained from a given sequencing run. We also saw that the process of sequencing is essentially a random sampling of an environment where the environment contains more fragments than can possibly be sequenced. Finally, the data obtained are read counts per genetic interval (gene or OTU) per sample.
+In the Chapter \ref{sequencing} we saw that the capacity of the sequencing instrument imposed an upper bound on the total number of fragments that could be obtained from a given sequencing run. We also saw that the process of sequencing is essentially a random sampling of an environment where the environment contains more fragments than can possibly be sequenced. Finally, the data obtained are read counts per genetic interval (gene or OTU) per sample.
 
 The read counts per sample range from 0 to, as a maximum, the total number of reads in the sample. Thus the data are positive integer data with an arbitrary maximum. While the data have an arbitrary maximum, the majority of current tools assume the data are counts and ignore the arbitrary maximum constraint. This assumption is the basis of methods grounded in distributions such as the zero inflated Gaussian (ZIG) [@Paulson:2013aa], negative binomial [@Robinson:2010] and Poisson based models [@auer:2011]. Recent benchmarking has demonstrated that such methods are unpredictable when dealing with highly sparse data [@Thorsen:2016aa] and do not control the false discovery rate [@gloorAJS:2016; @hawinkel2017].
 
@@ -16,10 +16,13 @@ Data from high throughput sequencing have the following properties; the data are
 
 A vector containing $D$ features where the sum is 1 can be formally stated as: $\vec{X} = \{(x_1,x_2,x_3, \ldots x_D); x_i\ge 0; \sum_{x=1}^{D} = 1\}$. The sum of the parts is usually set to 1 or 100, but can take any value; i.e., any composition can be scaled to any arbitrary sum such as a ppm.  The property of scaling to any arbitrary value is named an equivalence class and compositional data are equivalence classes [@barcelo:2001]. In the lexicon of high throughput sequencing the vector is the sample and the features are the OTUs or genes or genomic intervals. The total sum is the total number of fragments observed for the sample.
 
-Compositional data have a number of built-in pathologies: a negative correlation bias, sub-compositional incoherence, and spurious correlations. A proper analysis of compositional data must account for these pathologies, and in addition be scale invariant, permutation invariant, and exhibit subcompositional coherence (or at least sub-compositional dominance).
+Compositional data have a number of built-in pathologies: a negative correlation bias, sub-compositional incoherence, and spurious correlations. A proper analysis of compositional data must as a minimum account for these pathologies.
 
-More formally, compositional datasets have the property that they are described by $D-1$ observations [@Aitchison:1986]. In other words, if we know that all parts sum to 1, then the last part can be known by subtracting the sum of all other parts from 1, i.e., $x_D = 1-\sum_{x=1}^{D-1}$. Graphically, this means that compositions inhabit a space called a
-Simplex that contains 1 fewer dimensions than the number of parts. The distances between parts on the Simplex are not linear. This is important because all parametric statistical tests assume that differences between parts are linear (or additive). Thus, while standard tests will produce output, the output will be misleading because distances on the simplex are non-linear and bounded [@martin1998measures]. The chapter on Data Transformations contains an intuitive demonstration of how data is moved to the Simplex.
+More formally, compositional datasets have the property that they are described by $D-1$ features [@Aitchison:1986]. In other words, if we know that all features sum to 1, then the value of any individual feature can be known by subtracting the sum of all other parts from 1, i.e., $x_D = 1-\sum_{x=1}^{D-1}$.
+
+Graphically, this means that compositional data inhabit a space called a Simplex that contains 1 fewer dimensions than the number of features. The distances between parts on the Simplex are not linear. This is important because all parametric statistical tests assume that differences between parts are linear (or additive). Thus, while standard tests will produce output, the output will be misleading because distances on the simplex are non-linear and bounded [@martin1998measures]. The chapter on Data Transformations contains an intuitive demonstration of how data is moved to the Simplex.
+
+ In addition a compositionally appropriate analysis should be scale invariant (the result should not depend on the , permutation invariant, and exhibit subcompositional coherence (or at least sub-compositional dominance).
 
 ### Negative correlation bias in compositions
 
@@ -36,7 +39,7 @@ The values of the parts of compositional datasets are constrained because of the
 
 In addition to a negative correlation bias, compositional data has the additional problem of  spurious correlation [@Pearson:1896]; in fact spurious correlation was the first troubling issue identified with compositional data. This phenomenon is best illustrated with  the following example from Lovell et. al [-@Lovell:2015], where they show how simply dividing two sets of random numbers (say abundances of OTU1 and OTU2), by a third set of random numbers (say abundances of OTU3) results in a strong correlation. Note that this phenomenon depends only on there being a common denominator.
 
-```{r R_block_correlation, echo=TRUE,fig.width=4,fig.height=4, fig.cap="\\label{correlation} Spurious correlation in compositional data. Two random vectors drawn from a Normal distribution, were divided by a third vector also drawn at random from a Normal distribution. The two vectors have nothing in common, they should exhibit  no correlation, and yet they exhibit a correlation coefficent of $>0.65$ when divided by the third vector. See the introductory section of the Supplementary Information of Lovell [-@Lovell:2015] for a more complete description of this phenomenon. "}
+```{r correlation, echo=TRUE,fig.width=4,fig.height=4, fig.cap="Spurious correlation in compositional data. Two random vectors drawn from a Normal distribution, were divided by a third vector also drawn at random from a Normal distribution. The two vectors have nothing in common, they should exhibit  no correlation, and yet they exhibit a correlation coefficent of $>0.65$ when divided by the third vector. See the introductory section of the Supplementary Information of Lovell [-@Lovell:2015] for a more complete description of this phenomenon. "}
 
 n.obs <- 100
 OTU.df <- data.frame(

@@ -1,4 +1,4 @@
-# Exploring compositional data: the compositional biplot
+# Exploring compositional data: the compositional biplot {#biplot}
 
 There are three main data analysis issues that must be acknowledged.
 

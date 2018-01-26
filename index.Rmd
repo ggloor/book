@@ -1,0 +1,46 @@
+---
+title: "Compositional analysis of high throughput sequencing data"
+author: "Greg Gloor"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+documentclass: book
+biblio-style: apalike
+link-citations: yes
+bibliography: [/Users/ggloor/Library/texmf/bibtex/bib/bibdesk_refs.bib]
+output:
+    bookdown::pdf_book:
+        toc_depth: 3
+        includes:
+            in_header: /Users/ggloor/Documents/0_git/templates/header.tex
+        pandoc_args: [
+            "-V", "classoption=twocolumn"
+        ]
+---
+
+# About this document {#about}
+
+This document is an .Rmd document and can be found at:
+
+github.com/ggloor/book
+
+The generation of this document requires `R` and an installation of \LaTeX to work properly. This document contains interspersed markdown and `R` code that may be compiled into a pdf document and supports the figures and assertions in the main article. `R` code is (almost always) exposed in the pdf document so that the interested reader can work through the example code themselves. Code that is not exposed is in the `chunk` directory.
+
+## Reproducing the analysis
+
+From an R command prompt you can compile this document into PDF if you have \LaTeX and pandoc installed:
+
+`bookdown::render_book("index.Rmd")` or you can open the file in RStudio and compile in that environment.
+
+## R packages required
+
+We will need the following R packages, several functions are defined in a dedicated functions section.
+
+1. knitr (CRAN)
+2. bookdown (CRAN)
+3. vegan (CRAN)
+
+```{r libs, results="hide", echo=F, message=F, error=F, warnings=F}
+
+library(knitr)
+library(bookdown)
+library(vegan)
+```

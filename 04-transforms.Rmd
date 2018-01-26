@@ -1,4 +1,4 @@
-# Data transforms in high throughput sequencing
+# Data transforms in high throughput sequencing {#transforms}
 
 This chapter introduces data transformations that are prevalent in the ecological literature, and that have been extensively used in analyzing high throughput sequencing datasets. It is not intended to be a comprehensive analysis of data transformations, nor are all transformations described. In some cases, only one transformation is demonstrated when several transformations  are obviously related. The `vegan` R package manual [@vegan:2017] has a very good description of many other data transformations and I recommend it to the interested reader: note that the `vegan` package is not compositionally appropriate.
 
