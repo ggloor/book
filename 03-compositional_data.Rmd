@@ -90,6 +90,6 @@ Atichison [-@Aitchison:1986], Pawlsky-Glahn [-@Pawlowsky-Glahn:2006], and Egozcu
 
  where $gX$ is the geometric mean of the features in sample $\vect{X}$. The clr transformation is formally equivalent to a matrix of all possible pairwise ratios, but is a more tractable form. The clr transformation is not perfect by any means, but when there are large numbers of features the properties of the clr approach the ideal isometric log-ratio transformation or ilr. In the context of high throughput sequencing, where there are often hundreds or thousands of features the clr and the ilr have nearly indistinguishable properties.
 
-The properties of the clr transformation are demonstrated in the Chapter \ref{tranforms}.
+The properties of the clr transformation are demonstrated in the Chapter \ref{transforms}.
 
 

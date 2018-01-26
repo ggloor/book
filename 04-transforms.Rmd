@@ -4,52 +4,50 @@ This chapter introduces data transformations that are prevalent in the ecologica
 
 This chapter is rather information dense, but the lessons in it are very important to understand the limitations of data analysis whenever the data are compositional. I have tried to make it easy and intuitive, but in the end you must work through the examples as best you can. All the source code needed to explore the data are included either directly here, or in an external file when the amount of code would break the flow of the narrative.
 
-It is  assumed that the output from a high-throughput sequencing experiment represents in some way the underlying abundance of the input DNA molecules. The input counts panels on the left side of Figure \ref{fig_shape} shows two  idealized experiments. The top left shows the case where the total count of all nucleic acid species in the input is constrained, the bottom left illustrates the case where the total count is unconstrained. These are modelled as a time series, but any  process would produce the same results.
+## Why transform data?
+
+Data are transformed for a variety of reasons. The first reason, is to make the data amenable to statistical assumptions for parametric tests which require normally distributed and similar standard deviations in all groups. The historically common arcsine square root transformation has recently fallen out of favour [@Warton:2011aa]. Tthe logaritmic transformation is commonly used after a 'count normalization' step. As we shall see below, neither count normalized, nor log count normalized data is generally the best option. The second reason for normalization is to remove or adjust the compositional nature of the data [@Weiss:2017], again, as we shall see this is not possible.
+
+
+
+It is  assumed that the output from a high-throughput sequencing experiment represents in some way the underlying abundance of the input DNA molecules. The input counts panels on the left side of Figure \ref{fig:shape} shows two  idealized experiments. The top left shows the case where the total count of all nucleic acid species in the input is constrained, the bottom left illustrates the case where the total count is unconstrained. These are modelled as a time series, but any  process would produce the same results.
 
 Constrained datasets  occur if the increase or decrease in any component is exactly compensated by the increase or decrease of one or more others. Here the total  count  remains constant across all experimental conditions. Examples of constrained datasets would include  allele frequencies at a locus where the total has to be 1, and the RNA-seq where the induction of genes occurs in a steady-state cell culture. In this case, any process, such as sequencing that generates a proportion simply recapitulates the data with sampling error. The unspoken assumption in most high throughput experimental designs is that this assumption is true---\emph{ it is not!}
 
 An unconstrained dataset  results if the total count is free to vary. Examples of unconstrained datasets would include ChIP-Seq, RNA-seq where we are examining two  different conditions or cell populations, metagenomics, etc. Importantly, 16S rRNA gene sequencing analyses are almost always free to vary; that is, the total bacterial load is rarely constant in an environment. Thus, the unconstrained data type would be the predominant type of data that would be expected.
 
-The relative abundance panels on the right side of Figure \ref{fig_shape} shows the result of random sampling with a defined maximum value in these two types of datasets. This random sampling reflects the data that results from high throughput sequencing where the total number of reads is constrained by the instrument capacity. The data is represented as a proportion, but  scales to parts per million or parts per billion  without changing the shape. Here we see that the shape of the data after sequencing is very similar to the input data in the case of constrained, but is very different in the case of non-constrained data. In the unconstrained dataset, observe how the blue and red features appear to be constant over the first 10 time points, but then appear to decrease in abundance at later time points. Conversely, the black feature appears to increase linearly at early time points, but appears to become constant at  late time points. Obviously, we would misinterpret what is happening if we compared early and late timepoints in the unconstrained dataset. It is also worth noting how the act of random sampling makes the proportional abundance of the rare OTU species uncertain in both the constrained and unconstrained data, but has little effect on the relative apparent effect on the relative abundance of OTUs with high counts.
+The relative abundance panels on the right side of Figure \ref{fig_shape} shows the result of random sampling with a defined maximum value in these two types of datasets. This random sampling reflects the data that results from high throughput sequencing where the total number of reads is constrained by the instrument capacity. The data is represented as a proportion, but  scales to parts per million or parts per billion  without changing the shape. Here we see that the shape of the data after sequencing is very similar to the input data in the case of constrained, but is very different in the case of non-constrained data. In the unconstrained dataset, observe how the blue and red features appear to be constant over the first 10 time points, but then appear to decrease in abundance at later time points. Conversely, the black feature appears to increase linearly at early time points, but appears to become constant at  late time points. Obviously, we would misinterpret what is happening if we compared early and late timepoints in the unconstrained dataset. It is also worth noting how the act of random sampling makes the proportional abundance of the rare feature species uncertain in both the constrained and unconstrained data, but has little effect on the relative apparent effect on the relative abundance of features with high counts.
 
 
-## Sequencing can change the shape of the data:
+## Sequencing changes the shape of all but the most ideal data:
 
-```{r R_block_constrained_data, echo=TRUE, fig.width=6.5, fig.height=4, fig.cap="\\label={fig-shape}High-throughput sequencing affects the shape of the data differently on constrained and unconstrained data. The two left panels show the absolute number of reads in the input tube for 20 steps where the green and black OTUs are changing abundance by 2-fold each step. The gray, blue and red OTUs are held at a constant number in each step in both cases.  The second column shows the output in proportions (or ppm, or FPKM) after random sampling to a constant sum, as occurs on the sequencer. The orange OTU in the constrained data set is much more abundant than any other, and is changing to maintain a constant number of input molecules.  Samples in the two right columns are the same values plotted on a log scale on the Y-axis for convenience. Note how the constrained data is the same before and after sequencing while the unconstrained data is severely distorted. " }
+We have seen that high throughput sequencing as currently practiced is constrained by the capacity of the instrument. In this section I show that the practical consequence of the instrument constraint can be severe in all but the most idealized datasets. An idealized dataset is one where the total number of  molecules is the same per sampling effort in all the samples taken from the the environment. An example of such an idealized would be if the samples were taken from a cell culture experiment with a treatment and control group where the treatment was expected to alter only a small number of features. This would be an example of a constrained dataset: the total number of DNA molecules in the samples in the two groups would be expected to be substantially the same except for random variation. This assumption is implicit in all differential abundance tools in use.
 
-# the number of rare counts in the dataset
+An example of a less than ideal experiment would be comparing the total gene content in DNA isolated from two different ecosystems.
+
+
+Here I generate a test dataset composed of 110 features in 20 samples---modelled as a time series. There are two situations. In the 'constrained' situation, one feature increase exponentially in each time step and one other feature decreases to compensate. In the 'unconstrained' situation, only one feature increases while the remainder of the features remain at a constant total abundance.
+
+```{r shape_data, echo=TRUE}
+
 num.one = 100
 ncol=num.one + 10
 
-m.dub <- matrix(data=NA, nrow=20, ncol=ncol)
-prop.m <- matrix(data=NA, nrow=20, ncol=ncol)
-clr.m <- matrix(data=NA, nrow=20, ncol=ncol)
+m.dub <- prop.m <- clr.m <- m.dub.u <-
+    prop.m.u <- clr.m.u <-
+    matrix(data=NA, nrow=20, ncol=ncol)
 
-m.dub.u <- matrix(data=NA, nrow=20, ncol=ncol)
-prop.m.u <- matrix(data=NA, nrow=20, ncol=ncol)
-clr.m.u <- matrix(data=NA, nrow=20, ncol=ncol)
+in.put <-
+    c(10,20971,1,1,5,10,20,50,100,200,1000)
 
-in.put <- c(10,20971,1,1,5,10,20,50,100,200,1000)
-
+# arbitrarily large number that exceeds
+# maximum possible
 total.sum <- sum(in.put + 1) * 1000
 
-# constrained with Gaussian noise
 # one feature increases exponentially
 # one feature decreases to compensate
 for(i in 0:19){
-	junk <- in.put * c(2^i,
-	    rep(1,num.one + 9))
-	junk[3] <- total.sum - sum(junk)
-	m.dub[i+1,] <- junk
-	prop.m[i+1,] <- as.numeric(
-	    rdirichlet(1, junk) )
-	clr.m[i+1,] <- log2(prop.m[i+1,])
-	    - mean(log2(prop.m[i+1,]))
-}
-# non-constrained with Gaussian noise
-# same as above, without the decreasing
-# feature
-for(i in 0:19){
+	# unconstrained data
 	junk <- in.put * c(2^i,
 	    rep(1,num.one + 9))
 	m.dub.u[i+1,] <- junk
@@ -57,73 +55,79 @@ for(i in 0:19){
 	    rdirichlet(1, junk) )
 	clr.m.u[i+1,] <- 2^(log2(prop.m.u[i+1,])
 	    - mean(log2(prop.m.u[i+1,])))
+    # now constrain the data
+	junk[3] <- total.sum - sum(junk)
+	m.dub[i+1,] <- junk
+	prop.m[i+1,] <- as.numeric(
+	    rdirichlet(1, junk) )
+	clr.m[i+1,] <- log2(prop.m[i+1,])
+	    - mean(log2(prop.m[i+1,]))
 }
 
 plot_c <- function(x, main, ylab, log=""){
 	plot(x[,1], pch=20, type="b",  log=log,
-	ylim=c(min(x), max(x)), xlab="time point",
-	ylab=ylab)
+	    ylim=c(min(x), max(x)),
+	    xlab="time point", ylab=ylab)
 	title( main=main, adj=0.5)
-	points(x[,2], type="b",pch=21, col="gray")
-	points(x[,3], type="b",pch=22, col="orange")
+	points(x[,2], type="b",pch=21,
+	   col="gray")
+	points(x[,3], type="b",pch=22,
+	   col="orange")
 	points(x[,num.one + 10], type="b",
 	    pch=23, col="blue")
 	points(x[,num.one+4], type="b", pch=24,
 	    col="red")
 }
 
+```
+
+We assume that the abundance of each input DNA species that is observed after sequencing reflects a random sample of the input  molecules. We can see that  that this may indeed be the case if the total number of  molecules in the input sample is constant. This constraint would be met if, for example, an increase in one or more DNA species was balanced with an equivalent decrease in one or more different species. Such a constraint would be met In the figure, the red and blue feature sequences are held constant in each sample, the green feature is decreasing by 2 fold and the black feature is increasing by 2 fold in each subsequent sample. The abundance of the orange feature is adjusted such that the total sum of the feature sequences in the input is held constant. Here it can be seen that the input counts and the relative abundance of each species following sequence have similar shapes, with the exception that the rarest species display significant variability because of random sampling.
+
+```{r shape, echo=TRUE, fig.width=6.5, fig.height=4, fig.cap="High-throughput sequencing affects the shape of the data differently on constrained and unconstrained data. The two left panels show the absolute number of reads in the input tube for 20 steps where the green and black features are changing abundance by 2-fold each step. The gray, blue and red features are held at a constant number in each step in both cases.  The second column shows the output in proportions (or ppm, or FPKM) after random sampling to a constant sum, as occurs on the sequencer. The orange feature in the constrained data set is much more abundant than any other, and is changing to maintain a constant number of input molecules.  Samples in the two right columns are the same values plotted on a log scale on the Y-axis for convenience. Note how the constrained data is the same before and after sequencing while the unconstrained data is severely distorted. " }
 par(mfrow=c(2,4), mar=c(4,4,3,1) )
 
 #constrained
 plot_c(m.dub, main="Constrained\ncount",
     ylab="raw count")
-plot_c(prop.m, main="Constrained\nproportion",
+plot_c(prop.m, main="Constrained\nprop",
     ylab="raw proportion")
 plot_c(m.dub, main="Constrained\ncount",
     ylab="log10 count", log="y")
-plot_c(prop.m, main="Constrained\nproportion",
+plot_c(prop.m, main="Constrained\nprop",
     ylab="log10 proportion", log="y")
 
 # unconstrained
 plot_c(m.dub.u, main="Unconstrained\ncount",
     ylab="raw count")
-plot_c(prop.m.u, main="Unconstrained\nproportion",
+plot_c(prop.m.u, main="Unconstrained\nprop",
     ylab="raw proportion")
 plot_c(m.dub.u, main="Unconstrained\ncount",
      ylab="log10 count", log="y")
-plot_c(prop.m.u, main="Unconstrained\nproportion",
+plot_c(prop.m.u, main="Unconstrained\nprop",
      ylab="log10 proportion", log="y")
 ```
 
-
-
-We assume that the abundance of each input DNA species that is observed after sequencing reflects a random sample of the input  molecules. We can see that  that this may indeed be the case if the total number of  molecules in the input sample is constant. This constraint would be met if, for example, an increase in one or more DNA species was balanced with an equivalent decrease in one or more different species. Such a constraint would be met In the figure, the red and blue OTU sequences are held constant in each sample, the green OTU is decreasing by 2 fold and the black OTU is increasing by 2 fold in each subsequent sample. The abundance of the orange OTU is adjusted such that the total sum of the OTU sequences in the input is held constant. Here it can be seen that the input counts and the relative abundance of each species following sequence have similar shapes, with the exception that the rarest species display significant variability because of random sampling.
-
 ## Commonly used transformations are misleading
 
-Current practice is to examine the datasets using `relative abundance' values, that is, the proportional abundance of the OTUs either before or after normalization for read depth. This approach is equivalent to examining the input unconstrained data of the type seen in Figure \ref{fig_shape} in the relative abundance sample space in the bottom right panel of the figure. This approach will obviously lead to incorrect assumptions in at least some cases. For example, depending upon the steps chosen to compare, the blue OTU, that has constant counts in the input, will be seen to either increase or decrease in abundance. Conversely, the green OTU, that is always decreasing in abundance will be seen to be constant if comparing samples 1-8.
+Current practice is to examine the datasets using `relative abundance' values, that is, the proportional abundance of the features either before or after normalization for read depth. This approach is equivalent to examining the input unconstrained data of the type seen in Figure \ref{fig_shape} in the relative abundance sample space in the bottom right panel of the figure. This approach will obviously lead to incorrect assumptions in at least some cases. For example, depending upon the steps chosen to compare, the blue feature, that has constant counts in the input, will be seen to either increase or decrease in abundance. Conversely, the green feature, that is always decreasing in abundance will be seen to be constant if comparing samples 1-8.
 
-The ecological literature offers many different transformations for such data, often as a way of making the data appear `more normal'. Figure  \ref{transform} shows the results of five such transformations.
+The ecological literature offers many different transformations for such data, often as a way of making the data appear 'more normal'. Figure  \ref{transformations} shows the results of five such transformations that are in the `vegan R` package.
 
-- The frequency transform divides the each OTU value by the largest OTU count, and then divides the resulting values by the number of OTUs in the sample that had non-zero counts.
+- The frequency transform divides the each feature value by the largest feature count, and then divides the resulting values by the number of features in the sample that had non-zero counts.
 
 - The Hellinger transformation that takes the square root of the relative abundance (proportion) value.
 
-- The range transform standardizes the values to have a range from 0 to 1. OTUs with 0 counts are set to 0.
+- The range transform standardizes the values to have a range from 0 to 1. features with 0 counts are set to 0.
 
 - The standardize transform standardizes the values for each sample to have a mean of 0 and a variance of 1.
 
-- The log transform divides each OTU count in a sample by the minimum non-zero count value, then takes the logarithm of the resulting value and adds 1. Counts of 0 are assigned a value of 0 to avoid taking the logarithm of 0.
+- The log transform divides each feature count in a sample by the minimum non-zero count value, then takes the logarithm of the resulting value and adds 1. Counts of 0 are assigned a value of 0 to avoid taking the logarithm of 0.
 
-- The centred log-ratio transformation divides the OTU values by the geometric mean OTU abundance, and then takes the logarithm.
+- The centred log-ratio transformation divides the feature values by the geometric mean feature abundance, and then takes the logarithm.
 
 It is obvious that the first four transformations result in data that badly mis-represents the shape of the actual input data. The log transformation, however results in the shape of the output data approximating the shape of the input data, except that the uncertainty of each data point is large. The ratio transform his transformation accurately recapitulates the shape of the original input data, and more accurately represents the uncertainty of each data point.
 
-```{r R_block_transformations, echo=FALSE,fig.width=6,fig.height=4,warning=F,message=F, fig.cap="\\label{transforms} The effect of ecological transformations on unconstrained high throughput sequencing datasets. Data generated as in Figure \\ref{fig_shape} were transformed with five different approaches implemented in the vegan ecological analysis package, and with the entered log-ratio approach suggested by Aitchison."}
-
-#RAW DATA ON MBQC DISK
-#Original script at: "/Users/ggloor/Documents/0_techrep_blog/analysis_joint
-
+```{r transformations, echo=FALSE,fig.width=6,fig.height=4.5,warning=F,message=F, fig.cap="The effect of ecological transformations on unconstrained high throughput sequencing datasets. Data generated as in Figure \\ref{fig_shape} were transformed with five different approaches implemented in the vegan ecological analysis package, and with the entered log-ratio approach suggested by Aitchison."}
 
 num.one = 100
 
@@ -352,7 +356,7 @@ Aitchison [-@Aitchison:1986] introduced the concept of the log-ratio transformat
 
 There are three main log-ratio transformations; the additive log-ratio (alr), centred log-ratio (clr) and the isometric log-ratio (ilr) [@Aitchison:1986;@pawlowsky2015modeling].
 
-Using the same notation as above for a sample vector  $\vec{\textbf{s}}$ of $D$ `counted' features (taxa, operational taxonomic units or OTUs, genes, etc.) $\vec{\textbf{s}}=[s_1, s_2, ... s_D]$:
+Using the same notation as above for a sample vector  $\vec{\textbf{s}}$ of $D$ `counted' features (taxa, operational taxonomic units or features, genes, etc.) $\vec{\textbf{s}}=[s_1, s_2, ... s_D]$:
 
 The alr is the simply the elements of the sample vector divided by a presumed invariant feature, which by convention here is the last one:
 
@@ -382,9 +386,9 @@ where $\mathrm{G}(\vec{\textbf{x}}) = \sqrt[D]{x_1 \cdot x_2 \cdot ... \cdot x_D
 
 The clr is often criticized since it has the property that the sum of the clr vector must equal 0. This constraint causes a singular covariance matrix; i.e., the sum of the covariance matrix is always a constant [@pawlowsky2015modeling]. However the clr has the advantage of being readily interpretable, a value in the vector is its abundance \emph{relative} to a mean value.
 
-The ilr is the final transformation, and is a series of sequential log-ratios between two groups of features. For example, the philr transformation is the series of ratios between OTUs partitioned along the phylogenetic tree [@Silverman:2017aa], although any other sequential binary partitioning  scheme is also possible [@pawlowsky2015modeling]. The ilr transformation does not suffer the drawbacks of either the alr or clr, but does not allow for insights into relationships between single features in the dataset.  Nevertheless, ilr transformations permit the full-range of multivariate tools to be used, and are recommended whenever possible.
+The ilr is the final transformation, and is a series of sequential log-ratios between two groups of features. For example, the philr transformation is the series of ratios between features partitioned along the phylogenetic tree [@Silverman:2017aa], although any other sequential binary partitioning  scheme is also possible [@pawlowsky2015modeling]. The ilr transformation does not suffer the drawbacks of either the alr or clr, but does not allow for insights into relationships between single features in the dataset.  Nevertheless, ilr transformations permit the full-range of multivariate tools to be used, and are recommended whenever possible.
 
-The ilr and clr are directly comparable in a two important ways: First, the distances between samples computed using an ilr and clr transformation are equivalent. Second, the clr approaches the ilr in other respects as the number of features becomes large. In this respect, the large number of features---hundreds in the case of OTUs, thousands in the case of genes---in a typical experiment works in our favour. Thus, while not perfect, the clr is the most widely used transformation. However, care must be taken when interpreting its outputs since single features must always be interpreted as a ratio between the feature and the denominator used for the clr transformation. The problems of using clr are apparent  when some subcomposition or group of taxa is analysed for further insight since the geometric mean of the subcomposition is not necessarily equal to that of the original composition, leading to potential inconsistencies.
+The ilr and clr are directly comparable in a two important ways: First, the distances between samples computed using an ilr and clr transformation are equivalent. Second, the clr approaches the ilr in other respects as the number of features becomes large. In this respect, the large number of features---hundreds in the case of features, thousands in the case of genes---in a typical experiment works in our favour. Thus, while not perfect, the clr is the most widely used transformation. However, care must be taken when interpreting its outputs since single features must always be interpreted as a ratio between the feature and the denominator used for the clr transformation. The problems of using clr are apparent  when some subcomposition or group of taxa is analysed for further insight since the geometric mean of the subcomposition is not necessarily equal to that of the original composition, leading to potential inconsistencies.
 
 Log-ratio values of any type do not need to be normalized since the total sum is a term in both the numerator and the denominator. Thus, the same log-ratio value will be obtained for the vector of raw read counts, or the vector of normalized read counts, or the vector of proportions calculated from the counts. Thus, log-ratios are said to be equivalence classes such that there is no information in the total count (aside from precision) [@barcelo:2001].
 

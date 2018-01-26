@@ -8,6 +8,7 @@ link-citations: yes
 bibliography: [/Users/ggloor/Library/texmf/bibtex/bib/bibdesk_refs.bib]
 output:
     bookdown::pdf_book:
+        number_sections: FALSE
         toc_depth: 3
         includes:
             in_header: /Users/ggloor/Documents/0_git/templates/header.tex
@@ -43,4 +44,5 @@ We will need the following R packages, several functions are defined in a dedica
 library(knitr)
 library(bookdown)
 library(vegan)
+source("chunk/functions.R")
 ```
