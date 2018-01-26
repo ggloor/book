@@ -1,146 +1,107 @@
 # Data transforms in high throughput sequencing
 
-```{r R_DES_norm, echo=FALSE, results="hide"}
-# gives the same answer as DESeq estimateSizeFactors
-# DESeq normalization method
-# from https://github.com/hbc/knowledgebase/wiki/Count-normalization-methods
-des.norm <- function(data){ # x is a matrix with samples by column
-	# calculate the feature-wise geometric mean
-	G <- apply(data, 1, function(x) exp(mean(log(x)))  )
-	# calculate the ratio between G and all features
-	rat <- apply(data, 2, function(x) x/G)
-	# get the median ratio per sample
-	norm <- apply(rat, 2, median)
+This chapter introduces data transformations that are prevalent in the ecological literature, and that have been extensively used in analyzing high throughput sequencing datasets. It is not intended to be a comprehensive analysis of data transformations, nor are all transformations described. In some cases, only one transformation is demonstrated when several transformations  are obviously related. The `vegan` R package manual [@vegan:2017] has a very good description of many other data transformations and I recommend it to the interested reader: note that the `vegan` package is not compositionally appropriate.
 
-	# scale each read by the median ratio per sample
-	norm.counts <- t(apply(data, 1, function(x) x/norm))
-	return(norm.counts)
-}
-```
+This chapter is rather information dense, but the lessons in it are very important to understand the limitations of data analysis whenever the data are compositional. I have tried to make it easy and intuitive, but in the end you must work through the examples as best you can. All the source code needed to explore the data are included either directly here, or in an external file when the amount of code would break the flow of the narrative.
 
-## Sequencing can change the shape of the data:
-
-```{r R_block_constrained_data,echo=FALSE,fig.width=6.5,fig.height=5, fig.cap="\\label={constant} High-throughput sequencing affects the shape of the data differently on constrained and unconstrained data. The two left panels show the absolute number of reads in the input tube for 20 steps where the green and black OTUs are changing abundance by 2-fold each step. The gray, blue and red OTUs are held at a constant number in each step in both cases.  The second column shows the output in proportions (or ppm, or FPKM) after random sampling to a constant sum, as occurs on the sequencer. The orange OTU in the constrained data set is much more abundant than any other, and is changing to maintain a constant number of input molecules.  Samples in the two right columns are the same values plotted on a log scale on the Y-axis for convenience. Note how the constrained data is the same before and after sequencing while the unconstrained data is severely distorted." }
-
-rdirichlet <- function (n, alpha)
-{
-  if(length(n) > 1) n <- length(n)
-  #if(length(n) == 0 || as.integer(n) == 0) return(numeric(0))
-  #n <- as.integer(n)
-  if(n < 0) stop("value(n) can not be negative in rtriang")
-
-  if(is.vector(alpha)) alpha <- t(alpha)
-  l <- dim(alpha)[2]
-  x <- matrix(rgamma(l * n, t(alpha)), ncol = l, byrow=TRUE)  # Gere le recycling
-  return(x / rowSums(x))
-}
-
-num.one = 100 # the number of rare-counts in the dataset
-
-mat.double <- matrix(data=NA, nrow=20, ncol=num.one + 10)
-prop.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
-clr.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
-
-mat.double.u <- matrix(data=NA, nrow=20, ncol=num.one + 10)
-prop.mat.u <- matrix(data=NA, nrow=20, ncol=num.one + 10)
-clr.mat.u <- matrix(data=NA, nrow=20, ncol=num.one + 10)
-
-# constant sum input
-minimum.count <- 1 # multiplier to set minimum count for in.put
-# non-constant sum input with both one big increase
-in.put <- c(10,20971,1,1,5,10,20,50,100,200,1000) * minimum.count
-
-total.sum <- sum(in.put + 1) * 1000
-
-for(i in 0:19){
-	# constant sum input
-	junk <- in.put * c(2^i, rep(1,num.one + 9))
-	junk[3] <- total.sum - sum(junk)
-	mat.double[i+1,] <- junk
-	prop.mat[i+1,] <- as.numeric( rdirichlet(1, junk) )
-	clr.mat[i+1,] <- log2(prop.mat[i+1,]) - mean(log2(prop.mat[i+1,]))
-}
-
-for(i in 0:19){
-	# non-constant sum input
-	#junk <- in.put * c(2^i, rep(1,num.one + 9))
-	junk <- in.put * c(2^i, rep(1,num.one + 9))
-	mat.double.u[i+1,] <- junk
-	prop.mat.u[i+1,] <- as.numeric( rdirichlet(1, junk) )
-	clr.mat.u[i+1,] <- 2^(log2(prop.mat.u[i+1,]) - mean(log2(prop.mat.u[i+1,])))
-}
-
-par(mfrow=c(2,4), mar=c(4,4,3,1) )
-
-plot(mat.double[,1], pch=20, type="b",  ylim=c(min(mat.double), max(mat.double)), xlab="time point", ylab="raw count")
-title( main="Constrained\ninput", adj=0.5)
-points(mat.double[,2], type="b",pch=21, col="gray")
-points(mat.double[,3], type="b",pch=22, col="orange")
-points(mat.double[,num.one + 10], type="b",pch=23, col="blue")
-points(mat.double[,num.one+4], type="b",pch=24, col="red")
-
-plot(prop.mat[,1], pch=20, type="b", ylim=c(min(prop.mat[,num.one+4]), max(prop.mat)), xlab="time point", ylab="raw proportion")
-title( main="Constrained\nproportion", adj=0.5)
-points(prop.mat[,2], type="b", pch=21, col="gray")
-points(prop.mat[,3], type="b", pch=22, col="orange")
-points(prop.mat[,num.one+10], type="b", pch=23, col="blue")
-points(prop.mat[,num.one+4], type="b", pch=24, col="red")
-
-plot(mat.double[,1], pch=20, type="b", log="y", ylim=c(min(mat.double), max(mat.double)), xlab="time point", ylab="log10 count")
-title( main="Constrained\ninput", adj=0.5)
-points(mat.double[,2], type="b",pch=21, col="gray")
-points(mat.double[,3], type="b",pch=22, col="orange")
-points(mat.double[,num.one + 10], type="b",pch=23, col="blue")
-points(mat.double[,num.one+4], type="b",pch=24, col="red")
-
-plot(prop.mat[,1], pch=20, type="b", ylim=c(min(prop.mat[,num.one+4]), max(prop.mat)), xlab="time point", log="y", ylab="log10 proportion")
-title( main="Constrained\nproportion", adj=0.5)
-points(prop.mat[,2], type="b", pch=21, col="gray")
-points(prop.mat[,3], type="b", pch=22, col="orange")
-points(prop.mat[,num.one+10], type="b", pch=23, col="blue")
-points(clr.mat[,num.one+4], type="b", pch=24, col="red")
-
-# unconstrained
-plot(mat.double.u[,1], pch=20, type="b",  ylim=c(min(mat.double.u), max(mat.double.u)), xlab="time point", ylab="raw count")
-title( main="Unconstrained\ninput", adj=0.5)
-points(mat.double.u[,2], type="b",pch=21, col="gray")
-points(mat.double.u[,num.one + 10], type="b",pch=23, col="blue")
-points(mat.double.u[,num.one+4], type="b",pch=24, col="red")
-
-plot(prop.mat.u[,1], pch=20, type="b", ylim=c(min(prop.mat.u[,num.one+4]), max(prop.mat.u)), xlab="time point", ylab="raw proportion")
-title( main="Unconstrained\nproportion", adj=0.5)
-points(prop.mat.u[,2], type="b", pch=21, col="gray")
-points(prop.mat.u[,num.one+10], type="b", pch=23, col="blue")
-points(prop.mat.u[,num.one+4], type="b", pch=24, col="red")
-
-plot(mat.double.u[,1], pch=20, type="b", log="y", ylim=c(min(mat.double.u), max(mat.double.u)), xlab="time point", ylab="log10 count")
-title( main="Unconstrained\ninput", adj=0.5)
-points(mat.double.u[,2], type="b",pch=21, col="gray")
-points(mat.double.u[,num.one + 10], type="b",pch=23, col="blue")
-points(mat.double.u[,num.one+4], type="b",pch=24, col="red")
-
-
-plot(prop.mat.u[,1], pch=20, type="b", ylim=c(min(prop.mat.u[,num.one+4]), max(prop.mat.u)),log="y", xlab="time point", ylab="log10 proportion")
-title( main="Unconstrained\nproportion", adj=0.5)
-points(prop.mat.u[,2], type="b", pch=21, col="gray")
-points(prop.mat.u[,num.one+10], type="b", pch=23, col="blue")
-points(prop.mat.u[,num.one+4], type="b", pch=24, col="red")
-```
-
-
-It is  assumed that the output from a high-throughput sequencing experiment represents in some way the underlying abundance of the input DNA molecules. The input counts panels on the left side of Figure \ref{constant} shows two  idealized experiments. The top left shows the case where the total count of all nucleic acid species in the input is constrained, the bottom left illustrates the case where the total count is unconstrained. These are modelled as a time series, but any  process would produce the same results.
+It is  assumed that the output from a high-throughput sequencing experiment represents in some way the underlying abundance of the input DNA molecules. The input counts panels on the left side of Figure \ref{fig_shape} shows two  idealized experiments. The top left shows the case where the total count of all nucleic acid species in the input is constrained, the bottom left illustrates the case where the total count is unconstrained. These are modelled as a time series, but any  process would produce the same results.
 
 Constrained datasets  occur if the increase or decrease in any component is exactly compensated by the increase or decrease of one or more others. Here the total  count  remains constant across all experimental conditions. Examples of constrained datasets would include  allele frequencies at a locus where the total has to be 1, and the RNA-seq where the induction of genes occurs in a steady-state cell culture. In this case, any process, such as sequencing that generates a proportion simply recapitulates the data with sampling error. The unspoken assumption in most high throughput experimental designs is that this assumption is true---\emph{ it is not!}
 
 An unconstrained dataset  results if the total count is free to vary. Examples of unconstrained datasets would include ChIP-Seq, RNA-seq where we are examining two  different conditions or cell populations, metagenomics, etc. Importantly, 16S rRNA gene sequencing analyses are almost always free to vary; that is, the total bacterial load is rarely constant in an environment. Thus, the unconstrained data type would be the predominant type of data that would be expected.
 
-The relative abundance panels on the right side of Figure \ref{constant} shows the result of random sampling with a defined maximum value in these two types of datasets. This random sampling reflects the data that results from high throughput sequencing where the total number of reads is constrained by the instrument capacity. The data is represented as a proportion, but  scales to parts per million or parts per billion  without changing the shape. Here we see that the shape of the data after sequencing is very similar to the input data in the case of constrained, but is very different in the case of non-constrained data. In the unconstrained dataset, observe how the blue and red features appear to be constant over the first 10 time points, but then appear to decrease in abundance at later time points. Conversely, the black feature appears to increase linearly at early time points, but appears to become constant at  late time points. Obviously, we would misinterpret what is happening if we compared early and late timepoints in the unconstrained dataset. It is also worth noting how the act of random sampling makes the proportional abundance of the rare OTU species uncertain in both the constrained and unconstrained data, but has little effect on the relative apparent effect on the relative abundance of OTUs with high counts.
+The relative abundance panels on the right side of Figure \ref{fig_shape} shows the result of random sampling with a defined maximum value in these two types of datasets. This random sampling reflects the data that results from high throughput sequencing where the total number of reads is constrained by the instrument capacity. The data is represented as a proportion, but  scales to parts per million or parts per billion  without changing the shape. Here we see that the shape of the data after sequencing is very similar to the input data in the case of constrained, but is very different in the case of non-constrained data. In the unconstrained dataset, observe how the blue and red features appear to be constant over the first 10 time points, but then appear to decrease in abundance at later time points. Conversely, the black feature appears to increase linearly at early time points, but appears to become constant at  late time points. Obviously, we would misinterpret what is happening if we compared early and late timepoints in the unconstrained dataset. It is also worth noting how the act of random sampling makes the proportional abundance of the rare OTU species uncertain in both the constrained and unconstrained data, but has little effect on the relative apparent effect on the relative abundance of OTUs with high counts.
+
+
+## Sequencing can change the shape of the data:
+
+```{r R_block_constrained_data, echo=TRUE, fig.width=6.5, fig.height=4, fig.cap="\\label={fig-shape}High-throughput sequencing affects the shape of the data differently on constrained and unconstrained data. The two left panels show the absolute number of reads in the input tube for 20 steps where the green and black OTUs are changing abundance by 2-fold each step. The gray, blue and red OTUs are held at a constant number in each step in both cases.  The second column shows the output in proportions (or ppm, or FPKM) after random sampling to a constant sum, as occurs on the sequencer. The orange OTU in the constrained data set is much more abundant than any other, and is changing to maintain a constant number of input molecules.  Samples in the two right columns are the same values plotted on a log scale on the Y-axis for convenience. Note how the constrained data is the same before and after sequencing while the unconstrained data is severely distorted. " }
+
+# the number of rare counts in the dataset
+num.one = 100
+ncol=num.one + 10
+
+m.dub <- matrix(data=NA, nrow=20, ncol=ncol)
+prop.m <- matrix(data=NA, nrow=20, ncol=ncol)
+clr.m <- matrix(data=NA, nrow=20, ncol=ncol)
+
+m.dub.u <- matrix(data=NA, nrow=20, ncol=ncol)
+prop.m.u <- matrix(data=NA, nrow=20, ncol=ncol)
+clr.m.u <- matrix(data=NA, nrow=20, ncol=ncol)
+
+in.put <- c(10,20971,1,1,5,10,20,50,100,200,1000)
+
+total.sum <- sum(in.put + 1) * 1000
+
+# constrained with Gaussian noise
+# one feature increases exponentially
+# one feature decreases to compensate
+for(i in 0:19){
+	junk <- in.put * c(2^i,
+	    rep(1,num.one + 9))
+	junk[3] <- total.sum - sum(junk)
+	m.dub[i+1,] <- junk
+	prop.m[i+1,] <- as.numeric(
+	    rdirichlet(1, junk) )
+	clr.m[i+1,] <- log2(prop.m[i+1,])
+	    - mean(log2(prop.m[i+1,]))
+}
+# non-constrained with Gaussian noise
+# same as above, without the decreasing
+# feature
+for(i in 0:19){
+	junk <- in.put * c(2^i,
+	    rep(1,num.one + 9))
+	m.dub.u[i+1,] <- junk
+	prop.m.u[i+1,] <- as.numeric(
+	    rdirichlet(1, junk) )
+	clr.m.u[i+1,] <- 2^(log2(prop.m.u[i+1,])
+	    - mean(log2(prop.m.u[i+1,])))
+}
+
+plot_c <- function(x, main, ylab, log=""){
+	plot(x[,1], pch=20, type="b",  log=log,
+	ylim=c(min(x), max(x)), xlab="time point",
+	ylab=ylab)
+	title( main=main, adj=0.5)
+	points(x[,2], type="b",pch=21, col="gray")
+	points(x[,3], type="b",pch=22, col="orange")
+	points(x[,num.one + 10], type="b",
+	    pch=23, col="blue")
+	points(x[,num.one+4], type="b", pch=24,
+	    col="red")
+}
+
+par(mfrow=c(2,4), mar=c(4,4,3,1) )
+
+#constrained
+plot_c(m.dub, main="Constrained\ncount",
+    ylab="raw count")
+plot_c(prop.m, main="Constrained\nproportion",
+    ylab="raw proportion")
+plot_c(m.dub, main="Constrained\ncount",
+    ylab="log10 count", log="y")
+plot_c(prop.m, main="Constrained\nproportion",
+    ylab="log10 proportion", log="y")
+
+# unconstrained
+plot_c(m.dub.u, main="Unconstrained\ncount",
+    ylab="raw count")
+plot_c(prop.m.u, main="Unconstrained\nproportion",
+    ylab="raw proportion")
+plot_c(m.dub.u, main="Unconstrained\ncount",
+     ylab="log10 count", log="y")
+plot_c(prop.m.u, main="Unconstrained\nproportion",
+     ylab="log10 proportion", log="y")
+```
+
+
 
 We assume that the abundance of each input DNA species that is observed after sequencing reflects a random sample of the input  molecules. We can see that  that this may indeed be the case if the total number of  molecules in the input sample is constant. This constraint would be met if, for example, an increase in one or more DNA species was balanced with an equivalent decrease in one or more different species. Such a constraint would be met In the figure, the red and blue OTU sequences are held constant in each sample, the green OTU is decreasing by 2 fold and the black OTU is increasing by 2 fold in each subsequent sample. The abundance of the orange OTU is adjusted such that the total sum of the OTU sequences in the input is held constant. Here it can be seen that the input counts and the relative abundance of each species following sequence have similar shapes, with the exception that the rarest species display significant variability because of random sampling.
 
 ## Commonly used transformations are misleading
 
-Current practice is to examine the datasets using `relative abundance' values, that is, the proportional abundance of the OTUs either before or after normalization for read depth. This approach is equivalent to examining the input unconstrained data of the type seen in Figure \ref{constant} in the relative abundance sample space in the bottom right panel of the figure. This approach will obviously lead to incorrect assumptions in at least some cases. For example, depending upon the steps chosen to compare, the blue OTU, that has constant counts in the input, will be seen to either increase or decrease in abundance. Conversely, the green OTU, that is always decreasing in abundance will be seen to be constant if comparing samples 1-8.
+Current practice is to examine the datasets using `relative abundance' values, that is, the proportional abundance of the OTUs either before or after normalization for read depth. This approach is equivalent to examining the input unconstrained data of the type seen in Figure \ref{fig_shape} in the relative abundance sample space in the bottom right panel of the figure. This approach will obviously lead to incorrect assumptions in at least some cases. For example, depending upon the steps chosen to compare, the blue OTU, that has constant counts in the input, will be seen to either increase or decrease in abundance. Conversely, the green OTU, that is always decreasing in abundance will be seen to be constant if comparing samples 1-8.
 
 The ecological literature offers many different transformations for such data, often as a way of making the data appear `more normal'. Figure  \ref{transform} shows the results of five such transformations.
 
@@ -158,35 +119,22 @@ The ecological literature offers many different transformations for such data, o
 
 It is obvious that the first four transformations result in data that badly mis-represents the shape of the actual input data. The log transformation, however results in the shape of the output data approximating the shape of the input data, except that the uncertainty of each data point is large. The ratio transform his transformation accurately recapitulates the shape of the original input data, and more accurately represents the uncertainty of each data point.
 
-```{r R_block_transformations,echo=FALSE,fig.width=6,fig.height=4,warning=F,message=F, fig.cap="\\label{transforms} The effect of ecological transformations on unconstrained high throughput sequencing datasets. Data generated as in Figure \ref{constant} were transformed with five different approaches implemented in the vegan ecological analysis package, and with the entered log-ratio approach suggested by Aitchison."}
+```{r R_block_transformations, echo=FALSE,fig.width=6,fig.height=4,warning=F,message=F, fig.cap="\\label{transforms} The effect of ecological transformations on unconstrained high throughput sequencing datasets. Data generated as in Figure \\ref{fig_shape} were transformed with five different approaches implemented in the vegan ecological analysis package, and with the entered log-ratio approach suggested by Aitchison."}
 
 #RAW DATA ON MBQC DISK
 #Original script at: "/Users/ggloor/Documents/0_techrep_blog/analysis_joint
 
-library(vegan)
-rdirichlet <- function (n, alpha)
-{
-  if(length(n) > 1) n <- length(n)
-  #if(length(n) == 0 || as.integer(n) == 0) return(numeric(0))
-  #n <- as.integer(n)
-  if(n < 0) stop("value(n) can not be negative in rtriang")
-
-  if(is.vector(alpha)) alpha <- t(alpha)
-  l <- dim(alpha)[2]
-  x <- matrix(rgamma(l * n, t(alpha)), ncol = l, byrow=TRUE)  # Gere le recycling
-  return(x / rowSums(x))
-}
 
 num.one = 100
 
-mat.double <- matrix(data=NA, nrow=20, ncol=num.one + 10)
-prop.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
-clr.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
-hel.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
-log.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
-freq.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
-range.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
-pa.mat <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+m.dub <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+prop.m <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+clr.m <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+hel.m <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+log.m <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+freq.m <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+range.m <- matrix(data=NA, nrow=20, ncol=num.one + 10)
+pa.m <- matrix(data=NA, nrow=20, ncol=num.one + 10)
 
 # non-constant sum input
 minimum.count <- 1 # multiplier to set minimum count for in.put
@@ -198,53 +146,53 @@ for(i in 0:19){
 	# non-constant sum input
 	#junk <- in.put * c(2^i, rep(1,num.one + 9))
 	junk <- in.put * c(2^i, rep(1 ^ i,num.one + 9))
-	mat.double[i+1,] <- junk
-	prop.mat[i+1,] <- as.numeric( rdirichlet(1, junk) )
-	clr.mat[i+1,] <- 2^(log2(prop.mat[i+1,]) - mean(log2(prop.mat[i+1,])))
-	hel.mat[i+1,] <- sqrt(prop.mat[i+1,])
-	freq.mat[i+1,] <- decostand(prop.mat[i+1,], method="freq")
-	log.mat[i+1,] <-  2^(decostand(prop.mat[i+1,], method="log")) #this is the divide by the minimum transformation from decostand that precedes taking the logarithm
-	range.mat[i+1,] <- decostand(prop.mat[i+1,], method="range")
-	pa.mat[i+1,] <- 10^decostand(prop.mat[i+1,], method="standardize")
+	m.dub[i+1,] <- junk
+	prop.m[i+1,] <- as.numeric( rdirichlet(1, junk) )
+	clr.m[i+1,] <- 2^(log2(prop.m[i+1,]) - mean(log2(prop.m[i+1,])))
+	hel.m[i+1,] <- sqrt(prop.m[i+1,])
+	freq.m[i+1,] <- decostand(prop.m[i+1,], method="freq")
+	log.m[i+1,] <-  2^(decostand(prop.m[i+1,], method="log")) #this is the divide by the minimum transformation from decostand that precedes taking the logarithm
+	range.m[i+1,] <- decostand(prop.m[i+1,], method="range")
+	pa.m[i+1,] <- 10^decostand(prop.m[i+1,], method="standardize")
 }
 
 par(mfrow=c(2,3), mar=c(4,4,3,1))
 
-plot(freq.mat[,1], pch=20, type="b", log="y", ylim=c(min(freq.mat[,num.one+4]), max(freq.mat)),main="frequency", xlab="time point", ylab="value")
-#points(freq.mat[,2], type="b", pch=19, col="green")
-#points(freq.mat[,3], type="b", pch=19, col="orange")
-points(freq.mat[,num.one+10], type="b", pch=23, col="blue")
-points(freq.mat[,num.one+4], type="b", pch=24, col="red")
+plot(freq.m[,1], pch=20, type="b", log="y", ylim=c(min(freq.m[,num.one+4]), max(freq.m)),main="frequency", xlab="time point", ylab="value")
+#points(freq.m[,2], type="b", pch=19, col="green")
+#points(freq.m[,3], type="b", pch=19, col="orange")
+points(freq.m[,num.one+10], type="b", pch=23, col="blue")
+points(freq.m[,num.one+4], type="b", pch=24, col="red")
 
-plot(hel.mat[,1], pch=20, type="b", log="y", ylim=c(min(hel.mat[,num.one+4]), max(hel.mat)),main="hellinger", xlab="time point", ylab="value")
-#points(hel.mat[,2], type="b", pch=19, col="green")
-#points(hel.mat[,3], type="b", pch=19, col="orange")
-points(hel.mat[,num.one+10], type="b", pch=23, col="blue")
-points(hel.mat[,num.one+4], type="b", pch=24, col="red")
+plot(hel.m[,1], pch=20, type="b", log="y", ylim=c(min(hel.m[,num.one+4]), max(hel.m)),main="hellinger", xlab="time point", ylab="value")
+#points(hel.m[,2], type="b", pch=19, col="green")
+#points(hel.m[,3], type="b", pch=19, col="orange")
+points(hel.m[,num.one+10], type="b", pch=23, col="blue")
+points(hel.m[,num.one+4], type="b", pch=24, col="red")
 
-plot(range.mat[,1], pch=20, type="b", log="y", ylim=c(min(range.mat[,num.one+4]), max(range.mat)),main="range ", xlab="time point", ylab="value")
-#points(range.mat[,2], type="b", pch=19, col="green")
-#points(range.mat[,3], type="b", pch=19, col="orange")
-points(range.mat[,num.one+10], type="b", pch=23, col="blue")
-points(range.mat[,num.one+4], type="b", pch=24, col="red")
+plot(range.m[,1], pch=20, type="b", log="y", ylim=c(min(range.m[,num.one+4]), max(range.m)),main="range ", xlab="time point", ylab="value")
+#points(range.m[,2], type="b", pch=19, col="green")
+#points(range.m[,3], type="b", pch=19, col="orange")
+points(range.m[,num.one+10], type="b", pch=23, col="blue")
+points(range.m[,num.one+4], type="b", pch=24, col="red")
 
-plot(pa.mat[,1], pch=20, type="b", log="y", ylim=c(min(pa.mat[,num.one+4]), max(pa.mat)),main="standardize", xlab="time point", ylab=" value")
-#points(pa.mat[,2], type="b", pch=19, col="green")
-#points(pa.mat[,3], type="b", pch=19, col="orange")
-points(pa.mat[,num.one+10], type="b", pch=23, col="blue")
-points(pa.mat[,num.one+4], type="b", pch=24, col="red")
+plot(pa.m[,1], pch=20, type="b", log="y", ylim=c(min(pa.m[,num.one+4]), max(pa.m)),main="standardize", xlab="time point", ylab=" value")
+#points(pa.m[,2], type="b", pch=19, col="green")
+#points(pa.m[,3], type="b", pch=19, col="orange")
+points(pa.m[,num.one+10], type="b", pch=23, col="blue")
+points(pa.m[,num.one+4], type="b", pch=24, col="red")
 
-plot(log2(log.mat[,1]), pch=20, type="b", log="y", ylim=c(log2(min(log.mat[,num.one+4])), log2(max(log.mat))),main="log", xlab="time point", ylab="value")
-#points(log.mat[,2], type="b", pch=19, col="green")
-#points(log.mat[,3], type="b", pch=19, col="orange")
-points(log2(log.mat[,num.one+10]), type="b", pch=23, col="blue")
-points(log2(log.mat[,num.one+4]), type="b", pch=24, col="red")
+plot(log2(log.m[,1]), pch=20, type="b", log="y", ylim=c(log2(min(log.m[,num.one+4])), log2(max(log.m))),main="log", xlab="time point", ylab="value")
+#points(log.m[,2], type="b", pch=19, col="green")
+#points(log.m[,3], type="b", pch=19, col="orange")
+points(log2(log.m[,num.one+10]), type="b", pch=23, col="blue")
+points(log2(log.m[,num.one+4]), type="b", pch=24, col="red")
 
-plot(log2(clr.mat[,1]), pch=20, type="b",  ylim=c(log2(min(clr.mat[,num.one+4])), log2(max(clr.mat))),main="clr", xlab="time point", ylab=" value")
-#points(clr.mat[,2], type="b", pch=19, col="green")
-#points(clr.mat[,3], type="b", pch=19, col="orange")
-points(log2(clr.mat[,num.one+10]), type="b", pch=19, col="blue")
-points(log2(clr.mat[,num.one+4]), type="b", pch=19, col="red")
+plot(log2(clr.m[,1]), pch=20, type="b",  ylim=c(log2(min(clr.m[,num.one+4])), log2(max(clr.m))),main="clr", xlab="time point", ylab=" value")
+#points(clr.m[,2], type="b", pch=19, col="green")
+#points(clr.m[,3], type="b", pch=19, col="orange")
+points(log2(clr.m[,num.one+10]), type="b", pch=19, col="blue")
+points(log2(clr.m[,num.one+4]), type="b", pch=19, col="red")
 ```
 
 

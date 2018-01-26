@@ -69,7 +69,7 @@ Thus, one major reason to use compositional data methods is that you are more li
 Practically speaking the negative correlation bias, the occurrence of spurious correlation, and the problem of sub-compositional incoherence means that \emph{every microbial correlation network that has ever been published is suspect}, as is \emph{every gene co-occurrence or co-expression network} unless compositionally appropriate compositional association metric was used [@Lovell:2015;@erb:2016;@Quinn206425]. These approaches themselves have limitations and as originally constituted cannot deal with sparse data.  However, recasting the data from count compositions to probability distributions allows these methods to be adapted to sparse data with some success [@bian:2017;@Quinn206425].
 
 
-## So how can I analyze compositional data?
+## So can I analyze compositional data? How?
 
 Much of the high throughput sequencing analysis literature seems to assume that data derived from high throughput sequencing are in some way unique, and that purpose-built tools must be used. However, there is nothing  special about high-throughput sequencing data from the point of view of the analysis. Fortunately, the analysis of compositional datasets has a well-developed methodology [@pawlowsky2015modeling;@van2013], much of which was worked out in the geological sciences.
 

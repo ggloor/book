@@ -120,7 +120,7 @@
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{25 January, 2018}
+  \date{26 January, 2018}
 
 % Redefines (sub)paragraphs to behave more like sections
 \ifx\paragraph\undefined\else
@@ -690,8 +690,8 @@ from count compositions to probability distributions allows these
 methods to be adapted to sparse data with some success (Bian et al.;
 Quinn et al., 2017a).
 
-\subsection{So how can I analyze compositional
-data?}\label{so-how-can-i-analyze-compositional-data}
+\subsection{So can I analyze compositional data?
+How?}\label{so-can-i-analyze-compositional-data-how}
 
 Much of the high throughput sequencing analysis literature seems to
 assume that data derived from high throughput sequencing are in some way
@@ -738,31 +738,29 @@ on data transformations.
 \section{Data transforms in high throughput
 sequencing}\label{data-transforms-in-high-throughput-sequencing}
 
-\subsection{Sequencing can change the shape of the
-data:}\label{sequencing-can-change-the-shape-of-the-data}
+This chapter introduces data transformations that are prevalent in the
+ecological literature, and that have been extensively used in analyzing
+high throughput sequencing datasets. It is not intended to be a
+comprehensive analysis of data transformations, nor are all
+transformations described. In some cases, only one transformation is
+demonstrated when several transformations are obviously related. The
+\texttt{vegan} R package manual (Oksanen et al., 2017) has a very good
+description of many other data transformations and I recommend it to the
+interested reader: note that the \texttt{vegan} package is not
+compositionally appropriate.
 
-\begin{figure}[htbp]
-\centering
-\includegraphics{main_files/figure-latex/R_block_constrained_data-1.pdf}
-\caption{\label=\{constant\} High-throughput sequencing affects the
-shape of the data differently on constrained and unconstrained data. The
-two left panels show the absolute number of reads in the input tube for
-20 steps where the green and black OTUs are changing abundance by 2-fold
-each step. The gray, blue and red OTUs are held at a constant number in
-each step in both cases. The second column shows the output in
-proportions (or ppm, or FPKM) after random sampling to a constant sum,
-as occurs on the sequencer. The orange OTU in the constrained data set
-is much more abundant than any other, and is changing to maintain a
-constant number of input molecules. Samples in the two right columns are
-the same values plotted on a log scale on the Y-axis for convenience.
-Note how the constrained data is the same before and after sequencing
-while the unconstrained data is severely distorted.}
-\end{figure}
+This chapter is rather information dense, but the lessons in it are very
+important to understand the limitations of data analysis whenever the
+data are compositional. I have tried to make it easy and intuitive, but
+in the end you must work through the examples as best you can. All the
+source code needed to explore the data are included either directly
+here, or in an external file when the amount of code would break the
+flow of the narrative.
 
 It is assumed that the output from a high-throughput sequencing
 experiment represents in some way the underlying abundance of the input
 DNA molecules. The input counts panels on the left side of Figure
-\ref{constant} shows two idealized experiments. The top left shows the
+\ref{fig_shape} shows two idealized experiments. The top left shows the
 case where the total count of all nucleic acid species in the input is
 constrained, the bottom left illustrates the case where the total count
 is unconstrained. These are modelled as a time series, but any process
@@ -787,26 +785,128 @@ almost always free to vary; that is, the total bacterial load is rarely
 constant in an environment. Thus, the unconstrained data type would be
 the predominant type of data that would be expected.
 
-The relative abundance panels on the right side of Figure \ref{constant}
-shows the result of random sampling with a defined maximum value in
-these two types of datasets. This random sampling reflects the data that
-results from high throughput sequencing where the total number of reads
-is constrained by the instrument capacity. The data is represented as a
-proportion, but scales to parts per million or parts per billion without
-changing the shape. Here we see that the shape of the data after
-sequencing is very similar to the input data in the case of constrained,
-but is very different in the case of non-constrained data. In the
-unconstrained dataset, observe how the blue and red features appear to
-be constant over the first 10 time points, but then appear to decrease
-in abundance at later time points. Conversely, the black feature appears
-to increase linearly at early time points, but appears to become
-constant at late time points. Obviously, we would misinterpret what is
-happening if we compared early and late timepoints in the unconstrained
-dataset. It is also worth noting how the act of random sampling makes
-the proportional abundance of the rare OTU species uncertain in both the
-constrained and unconstrained data, but has little effect on the
-relative apparent effect on the relative abundance of OTUs with high
-counts.
+The relative abundance panels on the right side of Figure
+\ref{fig_shape} shows the result of random sampling with a defined
+maximum value in these two types of datasets. This random sampling
+reflects the data that results from high throughput sequencing where the
+total number of reads is constrained by the instrument capacity. The
+data is represented as a proportion, but scales to parts per million or
+parts per billion without changing the shape. Here we see that the shape
+of the data after sequencing is very similar to the input data in the
+case of constrained, but is very different in the case of
+non-constrained data. In the unconstrained dataset, observe how the blue
+and red features appear to be constant over the first 10 time points,
+but then appear to decrease in abundance at later time points.
+Conversely, the black feature appears to increase linearly at early time
+points, but appears to become constant at late time points. Obviously,
+we would misinterpret what is happening if we compared early and late
+timepoints in the unconstrained dataset. It is also worth noting how the
+act of random sampling makes the proportional abundance of the rare OTU
+species uncertain in both the constrained and unconstrained data, but
+has little effect on the relative apparent effect on the relative
+abundance of OTUs with high counts.
+
+\subsection{Sequencing can change the shape of the
+data:}\label{sequencing-can-change-the-shape-of-the-data}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# the number of rare counts in the dataset}
+\NormalTok{num.one =}\StringTok{ }\DecValTok{100}
+\NormalTok{ncol=num.one +}\StringTok{ }\DecValTok{10}
+
+\NormalTok{m.dub <-}\StringTok{ }\KeywordTok{matrix}\NormalTok{(}\DataTypeTok{data=}\OtherTok{NA}\NormalTok{, }\DataTypeTok{nrow=}\DecValTok{20}\NormalTok{, }\DataTypeTok{ncol=}\NormalTok{ncol)}
+\NormalTok{prop.m <-}\StringTok{ }\KeywordTok{matrix}\NormalTok{(}\DataTypeTok{data=}\OtherTok{NA}\NormalTok{, }\DataTypeTok{nrow=}\DecValTok{20}\NormalTok{, }\DataTypeTok{ncol=}\NormalTok{ncol)}
+\NormalTok{clr.m <-}\StringTok{ }\KeywordTok{matrix}\NormalTok{(}\DataTypeTok{data=}\OtherTok{NA}\NormalTok{, }\DataTypeTok{nrow=}\DecValTok{20}\NormalTok{, }\DataTypeTok{ncol=}\NormalTok{ncol)}
+
+\NormalTok{m.dub.u <-}\StringTok{ }\KeywordTok{matrix}\NormalTok{(}\DataTypeTok{data=}\OtherTok{NA}\NormalTok{, }\DataTypeTok{nrow=}\DecValTok{20}\NormalTok{, }\DataTypeTok{ncol=}\NormalTok{ncol)}
+\NormalTok{prop.m.u <-}\StringTok{ }\KeywordTok{matrix}\NormalTok{(}\DataTypeTok{data=}\OtherTok{NA}\NormalTok{, }\DataTypeTok{nrow=}\DecValTok{20}\NormalTok{, }\DataTypeTok{ncol=}\NormalTok{ncol)}
+\NormalTok{clr.m.u <-}\StringTok{ }\KeywordTok{matrix}\NormalTok{(}\DataTypeTok{data=}\OtherTok{NA}\NormalTok{, }\DataTypeTok{nrow=}\DecValTok{20}\NormalTok{, }\DataTypeTok{ncol=}\NormalTok{ncol)}
+
+\NormalTok{in.put <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\DecValTok{10}\NormalTok{,}\DecValTok{20971}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{5}\NormalTok{,}\DecValTok{10}\NormalTok{,}\DecValTok{20}\NormalTok{,}\DecValTok{50}\NormalTok{,}\DecValTok{100}\NormalTok{,}\DecValTok{200}\NormalTok{,}\DecValTok{1000}\NormalTok{)}
+
+\NormalTok{total.sum <-}\StringTok{ }\KeywordTok{sum}\NormalTok{(in.put +}\StringTok{ }\DecValTok{1}\NormalTok{) *}\StringTok{ }\DecValTok{1000}
+
+\CommentTok{# constrained with Gaussian noise}
+\CommentTok{# one feature increases exponentially}
+\CommentTok{# one feature decreases to compensate}
+\NormalTok{for(i in }\DecValTok{0}\NormalTok{:}\DecValTok{19}\NormalTok{)\{}
+    \NormalTok{junk <-}\StringTok{ }\NormalTok{in.put *}\StringTok{ }\KeywordTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{^i,}
+        \KeywordTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,num.one +}\StringTok{ }\DecValTok{9}\NormalTok{))}
+    \NormalTok{junk[}\DecValTok{3}\NormalTok{] <-}\StringTok{ }\NormalTok{total.sum -}\StringTok{ }\KeywordTok{sum}\NormalTok{(junk)}
+    \NormalTok{m.dub[i}\DecValTok{+1}\NormalTok{,] <-}\StringTok{ }\NormalTok{junk}
+    \NormalTok{prop.m[i}\DecValTok{+1}\NormalTok{,] <-}\StringTok{ }\KeywordTok{as.numeric}\NormalTok{(}
+        \KeywordTok{rdirichlet}\NormalTok{(}\DecValTok{1}\NormalTok{, junk) )}
+    \NormalTok{clr.m[i}\DecValTok{+1}\NormalTok{,] <-}\StringTok{ }\KeywordTok{log2}\NormalTok{(prop.m[i}\DecValTok{+1}\NormalTok{,])}
+        \NormalTok{-}\StringTok{ }\KeywordTok{mean}\NormalTok{(}\KeywordTok{log2}\NormalTok{(prop.m[i}\DecValTok{+1}\NormalTok{,]))}
+\NormalTok{\}}
+\CommentTok{# non-constrained with Gaussian noise}
+\CommentTok{# same as above, without the decreasing}
+\CommentTok{# feature}
+\NormalTok{for(i in }\DecValTok{0}\NormalTok{:}\DecValTok{19}\NormalTok{)\{}
+    \NormalTok{junk <-}\StringTok{ }\NormalTok{in.put *}\StringTok{ }\KeywordTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{^i,}
+        \KeywordTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,num.one +}\StringTok{ }\DecValTok{9}\NormalTok{))}
+    \NormalTok{m.dub.u[i}\DecValTok{+1}\NormalTok{,] <-}\StringTok{ }\NormalTok{junk}
+    \NormalTok{prop.m.u[i}\DecValTok{+1}\NormalTok{,] <-}\StringTok{ }\KeywordTok{as.numeric}\NormalTok{(}
+        \KeywordTok{rdirichlet}\NormalTok{(}\DecValTok{1}\NormalTok{, junk) )}
+    \NormalTok{clr.m.u[i}\DecValTok{+1}\NormalTok{,] <-}\StringTok{ }\DecValTok{2}\NormalTok{^(}\KeywordTok{log2}\NormalTok{(prop.m.u[i}\DecValTok{+1}\NormalTok{,])}
+        \NormalTok{-}\StringTok{ }\KeywordTok{mean}\NormalTok{(}\KeywordTok{log2}\NormalTok{(prop.m.u[i}\DecValTok{+1}\NormalTok{,])))}
+\NormalTok{\}}
+
+\NormalTok{plot_c <-}\StringTok{ }\NormalTok{function(x, main, ylab, }\DataTypeTok{log=}\StringTok{""}\NormalTok{)\{}
+    \KeywordTok{plot}\NormalTok{(x[,}\DecValTok{1}\NormalTok{], }\DataTypeTok{pch=}\DecValTok{20}\NormalTok{, }\DataTypeTok{type=}\StringTok{"b"}\NormalTok{,  }\DataTypeTok{log=}\NormalTok{log,}
+    \DataTypeTok{ylim=}\KeywordTok{c}\NormalTok{(}\KeywordTok{min}\NormalTok{(x), }\KeywordTok{max}\NormalTok{(x)), }\DataTypeTok{xlab=}\StringTok{"time point"}\NormalTok{,}
+    \DataTypeTok{ylab=}\NormalTok{ylab)}
+    \KeywordTok{title}\NormalTok{( }\DataTypeTok{main=}\NormalTok{main, }\DataTypeTok{adj=}\FloatTok{0.5}\NormalTok{)}
+    \KeywordTok{points}\NormalTok{(x[,}\DecValTok{2}\NormalTok{], }\DataTypeTok{type=}\StringTok{"b"}\NormalTok{,}\DataTypeTok{pch=}\DecValTok{21}\NormalTok{, }\DataTypeTok{col=}\StringTok{"gray"}\NormalTok{)}
+    \KeywordTok{points}\NormalTok{(x[,}\DecValTok{3}\NormalTok{], }\DataTypeTok{type=}\StringTok{"b"}\NormalTok{,}\DataTypeTok{pch=}\DecValTok{22}\NormalTok{, }\DataTypeTok{col=}\StringTok{"orange"}\NormalTok{)}
+    \KeywordTok{points}\NormalTok{(x[,num.one +}\StringTok{ }\DecValTok{10}\NormalTok{], }\DataTypeTok{type=}\StringTok{"b"}\NormalTok{,}
+        \DataTypeTok{pch=}\DecValTok{23}\NormalTok{, }\DataTypeTok{col=}\StringTok{"blue"}\NormalTok{)}
+    \KeywordTok{points}\NormalTok{(x[,num.one}\DecValTok{+4}\NormalTok{], }\DataTypeTok{type=}\StringTok{"b"}\NormalTok{, }\DataTypeTok{pch=}\DecValTok{24}\NormalTok{,}
+        \DataTypeTok{col=}\StringTok{"red"}\NormalTok{)}
+\NormalTok{\}}
+
+\KeywordTok{par}\NormalTok{(}\DataTypeTok{mfrow=}\KeywordTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{4}\NormalTok{), }\DataTypeTok{mar=}\KeywordTok{c}\NormalTok{(}\DecValTok{4}\NormalTok{,}\DecValTok{4}\NormalTok{,}\DecValTok{3}\NormalTok{,}\DecValTok{1}\NormalTok{) )}
+
+\CommentTok{#constrained}
+\KeywordTok{plot_c}\NormalTok{(m.dub, }\DataTypeTok{main=}\StringTok{"Constrained}\CharTok{\textbackslash{}n}\StringTok{count"}\NormalTok{,}
+    \DataTypeTok{ylab=}\StringTok{"raw count"}\NormalTok{)}
+\KeywordTok{plot_c}\NormalTok{(prop.m, }\DataTypeTok{main=}\StringTok{"Constrained}\CharTok{\textbackslash{}n}\StringTok{proportion"}\NormalTok{,}
+    \DataTypeTok{ylab=}\StringTok{"raw proportion"}\NormalTok{)}
+\KeywordTok{plot_c}\NormalTok{(m.dub, }\DataTypeTok{main=}\StringTok{"Constrained}\CharTok{\textbackslash{}n}\StringTok{count"}\NormalTok{,}
+    \DataTypeTok{ylab=}\StringTok{"log10 count"}\NormalTok{, }\DataTypeTok{log=}\StringTok{"y"}\NormalTok{)}
+\KeywordTok{plot_c}\NormalTok{(prop.m, }\DataTypeTok{main=}\StringTok{"Constrained}\CharTok{\textbackslash{}n}\StringTok{proportion"}\NormalTok{,}
+    \DataTypeTok{ylab=}\StringTok{"log10 proportion"}\NormalTok{, }\DataTypeTok{log=}\StringTok{"y"}\NormalTok{)}
+
+\CommentTok{# unconstrained}
+\KeywordTok{plot_c}\NormalTok{(m.dub.u, }\DataTypeTok{main=}\StringTok{"Unconstrained}\CharTok{\textbackslash{}n}\StringTok{count"}\NormalTok{,}
+    \DataTypeTok{ylab=}\StringTok{"raw count"}\NormalTok{)}
+\KeywordTok{plot_c}\NormalTok{(prop.m.u, }\DataTypeTok{main=}\StringTok{"Unconstrained}\CharTok{\textbackslash{}n}\StringTok{proportion"}\NormalTok{,}
+    \DataTypeTok{ylab=}\StringTok{"raw proportion"}\NormalTok{)}
+\KeywordTok{plot_c}\NormalTok{(m.dub.u, }\DataTypeTok{main=}\StringTok{"Unconstrained}\CharTok{\textbackslash{}n}\StringTok{count"}\NormalTok{,}
+     \DataTypeTok{ylab=}\StringTok{"log10 count"}\NormalTok{, }\DataTypeTok{log=}\StringTok{"y"}\NormalTok{)}
+\KeywordTok{plot_c}\NormalTok{(prop.m.u, }\DataTypeTok{main=}\StringTok{"Unconstrained}\CharTok{\textbackslash{}n}\StringTok{proportion"}\NormalTok{,}
+     \DataTypeTok{ylab=}\StringTok{"log10 proportion"}\NormalTok{, }\DataTypeTok{log=}\StringTok{"y"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{main_files/figure-latex/R_block_constrained_data-1.pdf}
+\caption{\label=\{fig-shape\}High-throughput sequencing affects the
+shape of the data differently on constrained and unconstrained data. The
+two left panels show the absolute number of reads in the input tube for
+20 steps where the green and black OTUs are changing abundance by 2-fold
+each step. The gray, blue and red OTUs are held at a constant number in
+each step in both cases. The second column shows the output in
+proportions (or ppm, or FPKM) after random sampling to a constant sum,
+as occurs on the sequencer. The orange OTU in the constrained data set
+is much more abundant than any other, and is changing to maintain a
+constant number of input molecules. Samples in the two right columns are
+the same values plotted on a log scale on the Y-axis for convenience.
+Note how the constrained data is the same before and after sequencing
+while the unconstrained data is severely distorted.}
+\end{figure}
 
 We assume that the abundance of each input DNA species that is observed
 after sequencing reflects a random sample of the input molecules. We can
@@ -830,7 +930,7 @@ Current practice is to examine the datasets using `relative abundance'
 values, that is, the proportional abundance of the OTUs either before or
 after normalization for read depth. This approach is equivalent to
 examining the input unconstrained data of the type seen in Figure
-\ref{constant} in the relative abundance sample space in the bottom
+\ref{fig_shape} in the relative abundance sample space in the bottom
 right panel of the figure. This approach will obviously lead to
 incorrect assumptions in at least some cases. For example, depending
 upon the steps chosen to compare, the blue OTU, that has constant counts
@@ -879,7 +979,7 @@ accurately represents the uncertainty of each data point.
 \includegraphics{main_files/figure-latex/R_block_transformations-1.pdf}
 \caption{\label{transforms} The effect of ecological transformations on
 unconstrained high throughput sequencing datasets. Data generated as in
-Figure ef\{constant\} were transformed with five different approaches
+Figure \ref{fig_shape} were transformed with five different approaches
 implemented in the vegan ecological analysis package, and with the
 entered log-ratio approach suggested by Aitchison.}
 \end{figure}
@@ -1744,6 +1844,11 @@ Mortazavi, A., Williams, B. A., McCue, K., Schaeffer, L., and Wold, B.
 (2008). Mapping and quantifying mammalian transcriptomes by RNA-seq.
 \emph{Nat Methods} 5, 621--8.
 \href{http://doi.org/10.1038/nmeth.1226}{doi:10.1038/nmeth.1226}.
+
+\hyperdef{}{ref-vegan:2017}{\label{ref-vegan:2017}}
+Oksanen, J., Blanchet, F. G., Friendly, M., Kindt, R., Legendre, P.,
+McGlinn, D., et al. (2017). Vegan: Community ecology package. Available
+at: \url{https://CRAN.R-project.org/package=vegan} {[}Accessed {]}.
 
 \hyperdef{}{ref-Pachter:2011}{\label{ref-Pachter:2011}}
 Pachter, L. (2011). Models for transcript quantiffication from RNA-seq.

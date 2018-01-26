@@ -29,6 +29,8 @@ We will need the following R packages, several functions are defined in a dedica
 # rmarkdown::render('Frontiers_supplement.Rmd')
 # commands to load libraries and datasets
 library(knitr)
+library(vegan)
+source("chunk/functions.R")
 ```
 
 This booklet is intended for use in teaching graduate student courses and conference workshops on using compositional data analysis methods to examine high throughput sequencing datasets. The approach taken here is largely intuitive and hands on. Formulas for basic methodologies are presented, but the intuitive reason for using them takes precedence. The methods presented here have been used for 16S rRNA gene sequencing, transcriptomics, metagenomics and in-vitro selection (selex) experiments.
