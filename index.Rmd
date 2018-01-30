@@ -13,7 +13,7 @@ output:
         includes:
             in_header: /Users/ggloor/Documents/0_git/templates/header.tex
         pandoc_args: [
-            "-V", "classoption=twocolumn"
+            "-V", "classoption=onecolumn"
         ]
 ---
 
