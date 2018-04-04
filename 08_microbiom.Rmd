@@ -1,0 +1,5 @@
+# Analyzing 16S rRNA gene sequencing experiments
+
+The human microbiome project has initiated the large-scale culture-independent analysis of microbial communities, and transcriptome analysis has led to the study of the transcriptional response to many different disease and ecological states.
+
+However, many studies fail to replicate earlier studies even when the same technologies and strategies are used. As just one example, a multitude of studies have examined the link between autism and the human gut microbiota. These have variously implicated x,y,...,and z microbe as being linked to the condition. In a recent high-profile paper by Hsiao et al. [-@Hsiao:2013], \emph{Bacillus fragilis} was suggested to restore the gut microbiome of a mouse autism model from 'autistic-like' to 'normal'. Examination of the dataset shows that the conclusion was likely due to chance alone [@gloor2016s;@Gloor:2016cjm]. While the autism dataset serves as a facile example, the literature are replete with other examples.

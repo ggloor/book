@@ -1,0 +1,51 @@
+\contentsline {chapter}{\numberline {1}About this document}{5}{chapter.1}
+\contentsline {section}{Reproducing the analysis}{5}{section*.2}
+\contentsline {section}{R packages required}{5}{section*.3}
+\contentsline {chapter}{\numberline {2}Introduction}{7}{chapter.2}
+\contentsline {section}{Outline of the material}{7}{section*.4}
+\contentsline {chapter}{\numberline {3}The nature of sequencing data}{9}{chapter.3}
+\contentsline {section}{A constrained random sample}{9}{section*.5}
+\contentsline {section}{Constrained and un-constrained environments.}{10}{section*.6}
+\contentsline {section}{Modeling constrained and un-constrained samples}{11}{section*.7}
+\contentsline {subsection}{Instrument capacity}{12}{section*.8}
+\contentsline {subsection}{Example calculation of fragment number}{13}{section*.9}
+\contentsline {section}{Sequencing post processing}{14}{section*.10}
+\contentsline {subsection}{Mapping}{14}{section*.11}
+\contentsline {subsection}{OTU generation}{14}{section*.12}
+\contentsline {chapter}{\numberline {4}Random sampling by sequencing}{15}{chapter.4}
+\contentsline {section}{Formal description}{16}{section*.13}
+\contentsline {subsection}{Definitions and notation}{16}{section*.14}
+\contentsline {chapter}{\numberline {5}DNA sequencing data are compositions}{21}{chapter.5}
+\contentsline {section}{High throughput sequencing generates compositional data}{21}{section*.15}
+\contentsline {section}{Compositional data}{22}{section*.16}
+\contentsline {section}{CoDa pathologies}{22}{section*.17}
+\contentsline {subsection}{Negative correlation bias in compositions}{23}{section*.18}
+\contentsline {subsection}{Spurious correlations:}{23}{section*.19}
+\contentsline {subsection}{Sub-compositions}{24}{section*.20}
+\contentsline {section}{So can I analyze compositional data? How?}{25}{section*.21}
+\contentsline {subsection}{Basic idea of CoDa analysis}{25}{section*.22}
+\contentsline {chapter}{\numberline {6}Data transforms in high throughput sequencing}{27}{chapter.6}
+\contentsline {section}{Why transform data?}{27}{section*.23}
+\contentsline {section}{Sequencing changes the shape of all but the most ideal data:}{28}{section*.24}
+\contentsline {section}{Commonly used transformations are misleading}{28}{section*.25}
+\contentsline {section}{Other data transformations}{29}{section*.26}
+\contentsline {subsection}{Notation}{30}{section*.27}
+\contentsline {subsection}{The proportional transformation}{30}{section*.28}
+\contentsline {subsection}{The RPKM and TPM transformations}{30}{section*.29}
+\contentsline {subsection}{The median of ratios count normalization}{31}{section*.30}
+\contentsline {section}{Log-ratio transformations}{32}{section*.31}
+\contentsline {subsection}{The centered log-ratio transformation.}{33}{section*.32}
+\contentsline {section}{Comparison of transformations}{34}{section*.33}
+\contentsline {subsection}{A benchmark random dataset}{34}{section*.34}
+\contentsline {section}{The CLR transform contains relative information}{35}{section*.35}
+\contentsline {chapter}{\numberline {7}Distances in high throughput sequencing}{37}{chapter.7}
+\contentsline {section}{Distance or dissimilarity metrics}{37}{section*.36}
+\contentsline {subsection}{Distances in counts and proportion\}}{38}{section*.37}
+\contentsline {section}{Graphical demonstration of distance pathologies}{40}{section*.38}
+\contentsline {subsection}{Bray-Curtis Dissimilarity}{41}{section*.39}
+\contentsline {subsection}{Euclidian Distance of TSS scaling transformation}{41}{section*.40}
+\contentsline {subsection}{Euclidian Distance of DM transformation}{41}{section*.41}
+\contentsline {chapter}{\numberline {8}Exploring compositional data: the compositional biplot}{43}{chapter.8}
+\contentsline {chapter}{\numberline {9}Analyzing 16S rRNA gene sequencing experiments}{45}{chapter.9}
+\contentsline {chapter}{\numberline {10}HMP oral microbiota exploration}{47}{chapter.10}
+\contentsline {chapter}{\numberline {11}References}{51}{chapter.11}

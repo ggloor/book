@@ -1,34 +1,36 @@
-# DNA sequencing data are compositions
+# DNA sequencing data are compositions {#CoDa}
 
 ## High throughput sequencing generates compositional data
 
-In the Chapter \ref{sequencing} we saw that the capacity of the sequencing instrument imposed an upper bound on the total number of fragments that could be obtained from a given sequencing run. We also saw that the process of sequencing is essentially a random sampling of an environment where the environment contains more fragments than can possibly be sequenced. Finally, the data obtained are read counts per genetic interval (gene or OTU) per sample.
+In the Chapter \ref{sequencing} we saw that the capacity of the sequencing instrument imposed an upper bound on the total number of fragments that could be obtained from a given sequencing run. We also saw that the process of sequencing is essentially a random sampling of an environment where the environment contains more fragments than can possibly be sequenced in Chapter \ref{random}. Finally, the data obtained are read counts per genetic interval (gene or OTU) per sample.
 
-The read counts per sample range from 0 to, as a maximum, the total number of reads in the sample. Thus the data are positive integer data with an arbitrary maximum. While the data have an arbitrary maximum, the majority of current tools assume the data are counts and ignore the arbitrary maximum constraint. This assumption is the basis of methods grounded in distributions such as the zero inflated Gaussian (ZIG) [@Paulson:2013aa], negative binomial [@Robinson:2010] and Poisson based models [@auer:2011]. Recent benchmarking has demonstrated that such methods are unpredictable when dealing with highly sparse data [@Thorsen:2016aa] and do not control the false discovery rate [@gloorAJS:2016; @hawinkel2017].
+The read counts per sample range from 0 to, as a maximum, the total number of reads in the sample. Thus the data are positive integer data with an arbitrary maximum. While the data have an arbitrary maximum, the majority of current tools assume the data are counts and ignore the arbitrary maximum constraint. This assumption is the basis of methods grounded in distributions such as the zero inflated Gaussian (ZIG) [@Paulson:2013aa], negative binomial [@Robinson:2010] and Poisson based models [@auer:2011]. Recent benchmarking has demonstrated that such methods are unpredictable when dealing with highly sparse data [@Thorsen:2016aa], do not control the false discovery rate [@gloorAJS:2016; @hawinkel2017], and behave poorly when un-constrained datasets are examined [@fernandes:2013; @macklaim:2014;@gloorAJS:2016].
 
  Data of this type are called count compositions, and a number of groups have started to work on developing appropriate methods to deal with high throughput datasets as count compostions [@Friedman:2012; @fernandes:2013; @fernandes:2014; @Lovell:2015; @ancom:2015;@Kurtz:2015;@Gloor:2016cjm;@erb:2016;@gloor2016s;@Tsilimigras:2016aa;@Washburne:2017aa;@Quinn:2017;@Silverman:2017aa;@Quinn206425;@Kaul:2017aa;@Erb134536;@egozcue:AJS].
 
-So what is compositional data, and what are its properties with respect to high throughput sequencing that make this an important issue?
+So what is compositional data (CoDa), and what are its properties with respect to high throughput sequencing that make this an important issue?
 
 ## Compositional data
 
-Data from high throughput sequencing have the following properties; the data are counts, the data are non-negative, and the data has an upper bound imposed by the instrument because there is a limit to the number of fragments (and hence gene or OTU counts) that can be observed. This fits with the definition of compositional data: the data contains $D$  features (OTUs, genes, etc), where the count of each feature is non-negative, and the sum of the parts is known [@Aitchison:1986, pg25]. Note that the data do not have to sum to a predetermined amount, it is sufficient that the sum of the parts be known and not be able to be exceeded.
+Data from high throughput sequencing have the following properties; the data are counts, the data are non-negative, and the data has an upper bound imposed by the instrument. This fits with the definition of compositional data: compositional data contain $D$  features (OTUs, genes, etc), where the count of each feature is non-negative, and the sum of the parts is known or arbitrary [@Aitchison:1986, pg25]. Note that the data do not have to sum to a predetermined amount, it is sufficient that the sum of the parts be known and be bounded.
 
-A vector containing $D$ features where the sum is 1 can be formally stated as: $\vec{X} = \{(x_1,x_2,x_3, \ldots x_D); x_i\ge 0; \sum_{x=1}^{D} = 1\}$. The sum of the parts is usually set to 1 or 100, but can take any value; i.e., any composition can be scaled to any arbitrary sum such as a ppm.  The property of scaling to any arbitrary value is named an equivalence class and compositional data are equivalence classes [@barcelo:2001]. In the lexicon of high throughput sequencing the vector is the sample and the features are the OTUs or genes or genomic intervals. The total sum is the total number of fragments observed for the sample.
+A vector containing $D$ features where the sum is 1 can be formally stated as: $\vec{X} = \{(x_1,x_2,x_3, \ldots x_D); x_i\ge 0; \sum_{x=1}^{D} = 1\}$. The sum of the parts is usually set to 1 or 100, but can take any value; i.e., any composition can be scaled to any arbitrary sum such as a ppm.  Compositional data are equivalence classes since one vector can be scaled into another through multiplication by an arbitrary constant  [@barcelo:2001]. In the lexicon of high throughput sequencing the vector is the sample and the features are the OTUs or genes or genomic intervals. The total sum is the total number of fragments observed for the sample; i.e., the sequencing depth.
+
+## CoDa pathologies
 
 Compositional data have a number of built-in pathologies: a negative correlation bias, sub-compositional incoherence, and spurious correlations. A proper analysis of compositional data must as a minimum account for these pathologies.
 
-More formally, compositional datasets have the property that they are described by $D-1$ features [@Aitchison:1986]. In other words, if we know that all features sum to 1, then the value of any individual feature can be known by subtracting the sum of all other parts from 1, i.e., $x_D = 1-\sum_{x=1}^{D-1}$.
+Formally, compositional datasets have the property that they are described by $D-1$ features [@Aitchison:1986]. In other words, if we know that all features sum to a constant, then the value of any individual feature can be known by subtracting the sum of all other parts from that constant; i.e., $x_D = 1-\sum_{x=1}^{D-1}$.
 
 Graphically, this means that compositional data inhabit a space called a Simplex that contains 1 fewer dimensions than the number of features. The distances between parts on the Simplex are not linear. This is important because all parametric statistical tests assume that differences between parts are linear (or additive). Thus, while standard tests will produce output, the output will be misleading because distances on the simplex are non-linear and bounded [@martin1998measures]. Chapter \ref{transforms} on Data Transformations contains an intuitive demonstration of how data are moved to the Simplex when a the data are compositional.
 
-It is not always apparent when the data are compositional. This is especially true for large multivariate datasets such as those generated in high throughput sequencing. Aitchison [-@Aitchison:1986] indicated that a compositionally appropriate analysis should fulfil a number of properties, and when these properties are not met with traditional analyses, the data is likely compositional.
+It is not always apparent when the data are compositional. This is especially true for large multivariate datasets such as those generated in high throughput sequencing. Aitchison [-@Aitchison:1986] indicated that a compositionally appropriate analysis should fulfil a number of properties, and when these properties are not met with traditional analyses, the data are likely compositional.
 
-- A compositionally appropriate analysis should be scale invariant, that is, the results should not depend on the total count or scale of the sample.  There is substantial resistance to the idea the high throughput sequencing data are compositional, and indeed many analysts believe that the data can be made non-compositional with the 'correct' transform that restores the scale. The is belief is exposed to be false in Chapter \ref{transforms}.
+- A compositionally appropriate analysis should be scale invariant, that is, the results should not depend on the total count or scale of the sample. This first principle of CoDa data analysis indicates that all count normalization, or sequencing depth adjustments are either unnecessary or counterproductive. There is substantial resistance to the idea the high throughput sequencing data are compositional, and indeed many analysts believe that the data can be made non-compositional with the 'correct' transform that restores the scale. The is belief is exposed to be false in Chapter \ref{transforms}.
 
 - A compositionally appropriate analysis should also not depend on the order of the features in the dataset. This almost goes without saying, but is included because of the way that one particular transformation, the alr, was formulated.
 
-- A compositionally appropriate analysis should exhibit subcompositional coherence, or the results of analysis of a sub-composition should be the same as for the entire composition. In practice, this is difficult to achieve, and we settle for least sub-compositional dominance where the distances between features in the full composition is equal to or greater than the distances in the sub-composition. In later chapters where we examine real datasets, I show how to determine if sub-compositional coherence and dominance are fulfilled by the analysis.
+- A compositionally appropriate analysis should exhibit subcompositional coherence, or the results of analysis of a sub-composition should be the same as for the entire composition. In practice, this is difficult to achieve, and we settle for least sub-compositional dominance where the distances between features in the full composition are equal to or greater than the distances in the sub-composition. In later chapters where we examine real datasets, I show how to determine if sub-compositional dominance is fulfilled by the analysis.
 
 ### Negative correlation bias in compositions
 
@@ -39,7 +41,7 @@ It is not always apparent when the data are compositional. This is especially tr
     \put(50,20){\line(1,0){100}}
 \end{picture}
 
-The values of the parts of compositional datasets are constrained because of the constant sum, and this constraint has been known for a very long time. The features in a composition have a negative correlation bias since an increase in the value of one part must be offset by a decrease in value of one or more other parts. In the illustration above, we see that 'V' and 'M' are perfectly balanced on the fulcrum because they have the same mass. If M becomes heavier, then V will rise even though the mass of V has not changed. The same principle operates in compositional data. If V is the amount of money spend on vegetables, and M is the amount of money spent on meat, and the total food budget is a constant, then the only way that more meat would be consumed would be to spend less on vegetables. Therefore, the amount of money spent on V and M will be perfectly negatively correlated if the total food budget is constrained. This example generalizes to any number of items in the shopping basket as long as the total budget is constrained. When there are more items, then an increase in one item (say shoes) must be offset by a decrease in another item, but it could be a decrease in meat, vegetables or both.
+The values of the parts of compositional datasets are constrained because of the constant sum, and this constraint has been known for a very long time [@Pearson;1896]. The features in a composition have a negative correlation bias since an increase in the value of one part must be offset by a decrease in value of one or more other parts. In the illustration above, we see that 'V' and 'M' are perfectly balanced on the fulcrum because they have the same mass. If M becomes heavier, then V will rise even though the mass of V has not changed. The same principle operates in compositional data. If V is the amount of money spend on vegetables, and M is the amount of money spent on meat, and the total food budget is a constant, then the only way that more meat could be consumed would be to spend less on vegetables. Therefore, the amount of money spent on V and M will be perfectly negatively correlated if the total food budget is constrained. This example generalizes to any number of items in the shopping basket as long as the total budget is constrained. When there are more items, then an increase in one item (say shoes) must be offset by a decrease in another item, but it could be a decrease in meat, vegetables or both.
 
 ### Spurious correlations:
 
@@ -82,14 +84,30 @@ Practically speaking the negative correlation bias, the occurrence of spurious c
 
 Much of the high throughput sequencing analysis literature seems to assume that data derived from high throughput sequencing are in some way unique, and that purpose-built tools must be used. However, there is nothing  special about high-throughput sequencing data from the point of view of the analysis. Fortunately, the analysis of compositional datasets has a well-developed methodology [@pawlowsky2015modeling;@van2013], much of which was worked out in the geological sciences.
 
-Atichison [-@Aitchison:1986], Pawlsky-Glahn [-@Pawlowsky-Glahn:2006], and Egozcue [-@egozcue2005], have done much work to develop rigorous approaches to analyze compositional data [@pawlowsky2011compositional]. The essential step is to reduce the data to ratios between the $D$. This step does not move the data from the Simplex but does transform the data on the Simplex  such that the distances between the ratios of the features are linear. The investigator must keep in mind that the distances are between ratios between features, not between counts of features (re-read this several times to wrap your head around it). Several transformations are in common use, but the one I believe is most applicable to HTS data is the centred log-ratio transformation or clr, where the data in each sample is transformed by taking the logarithm of the the ratio between the count value for each part and the geometric mean count: i.e., for D features in sample vector $\vect{X} = [x_1, x_2, x_3, \ldots x_D]$:
+Atichison [-@Aitchison:1986], Pawlsky-Glahn [-@Pawlowsky-Glahn:2006], and Egozcue [-@egozcue2005], have done much work to develop rigorous approaches to analyze compositional data [@pawlowsky2011compositional]. The essential step is to reduce the data to ratios between the $D$. This step does not move the data from the Simplex but does transform the data on the Simplex  such that the distances between the ratios of the features are linear. The investigator must keep in mind that the distances are between ratios between features, not between counts of features (re-read this several times to wrap your head around it). Several transformations are in common use, but the one I believe is most applicable to HTS data is the centred log-ratio transformation or clr. The clr, and other common data transformations are explained in the next Chapter---I bet you can't wait!
 
-\begin{equation}
- \vect{X}_{clr}  = [log(\frac{x_1}{gX}), log(\frac{x_2}{gX}) \ldots log(\frac{x_D}{gX})]
-\end{equation}
+### Basic idea of CoDa analysis
 
- where $gX$ is the geometric mean of the features in sample $\vect{X}$. The clr transformation is formally equivalent to a matrix of all possible pairwise ratios, but is a more tractable form. The clr transformation is not perfect by any means, but when there are large numbers of features the properties of the clr approach the ideal isometric log-ratio transformation or ilr. In the context of high throughput sequencing, where there are often hundreds or thousands of features the clr and the ilr have nearly indistinguishable properties.
+We want to answer the question: Have the abundances of the taxa changed? But we cannot, because as we have seen the actual abundances are not available. Instead we have relative abundances, that is the ratios between the features, and the following is a simple example.
 
-The properties of the clr transformation are demonstrated in the Chapter \ref{transforms}.
+We sequence, and have a total count of about 100 (it is a second generation GregSeq machine!)
 
+So we get:
+\begin{math}A_s = [71,7,4,18], B_s = [1,25,12,62]
+\end{math}
 
+Note that these values appear to be very different between the groups. However, if we take one feature as a reference, say feature 4, and determine a ratio, i.d.:
+
+\begin{math}
+A_r = [ 74/18, 7/18, 4/18 ] = [ 4.1, 0.39, 0.22 ]
+\end{math}
+
+\begin{math}
+B_r = [ 1/62, 25/62, 12/62 ] = [ 0.02 , 0.40, 0.20 ]
+\end{math}
+
+Here we can see that if we assume one feature is constant (feature 4), then the last two are seen to be very similar in abundance relative to feature 4. Now we can infer that the majority of change is in the first feature assuming feature 4 is invariant. We cannot compare the last feature because it is assumed to be constant, that is, the assumed change in the last feature is 0. This approach is the one used by ANCOM, a recently developed tool to assess change in microbiome datasets [@ancom:2015].
+
+Since we cannot know which feature, if any, is constant, we can assume that a large number of the taxa exhibit only random change.  Then rather than using one feature as a reference we can use the geometric mean abundance of all features. Note: this approach works poorly if there are only a small number of taxa (less than about 50) or if the taxa are very asymmetrically distributed between groups. This approach is the one used by ALDEx2 [@fernandes:2013;@fernandes:2014], and is the method that we will use.
+
+One complication is that a genometric mean cannot be determined if any of the values have a count of 0. For pairwise comparisons

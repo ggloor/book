@@ -8,6 +8,7 @@ link-citations: yes
 bibliography: [/Users/ggloor/Library/texmf/bibtex/bib/bibdesk_refs.bib]
 output:
     bookdown::pdf_book:
+        keep_tex: true
         number_sections: FALSE
         toc_depth: 3
         includes:
@@ -40,9 +41,11 @@ We will need the following R packages, several functions are defined in a dedica
 3. vegan (CRAN)
 
 ```{r libs, results="hide", echo=F, message=F, error=F, warnings=F}
-
 library(knitr)
 library(bookdown)
 library(vegan)
+library(ALDEx2)
 source("chunk/functions.R")
+library(Ternary)
+tutorial_data <- "/Users/ggloor/Documents/0_git/Coda_microbiome_tutorial/data/"
 ```

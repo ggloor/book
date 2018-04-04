@@ -1,36 +1,35 @@
-# DNA sequencing is random sampling
+# Random sampling by sequencing {#random}
 
 In Chapter \ref{sequencing} we saw that DNA sequencing is not a counting operation but is instead a random sampling operation from a large pool, akin to sampling different colored balls from an urn that contains more balls than are sampled. A counting operation always allows the addition of 'one more observation'. In the context of DNA  sequencing this would equate to loading the samples onto an Illumina MiSeq chip to the optimal fragment density and then adding in 'one more fragment' repeatedly until the number of fragments loaded exceed the capacity of the chip. The sequencing reaction will fail when the number of frangments exceeds the chip capacity. Stated bluntly, one cannot purchase an Illumina MiSeq run and expect to receive data equivalent to an Illumina NextSeq or HiSeq run. This self-evident fact is completely overlooked in the literature.
 
-If the number of DNA fragments sequenced is has an arbitrary upper bound determined by the machine, and the number of fragments in the library is always larger than the machine capacity, then it should be obvious that the number of fragments sequenced can contain no information about the \emph{number} of fragments in the library pool, nor can the number of fragments contain information about the \emph{number}  of molecules in the original DNA sample from the environment. The univariate logical equivalent is to only know the percentage that a suit is marked down to, without knowing the original price. The multivariate intuition is that we cannot know the number of balls of different colour in the urn, we can only infer their proportions.
-
-Therefore, the only information available is the \emph{relative} proportion of individual fragments in the library, which is assumed to approximate the proportion of fragments in the  DNA sample from the environment.We will revisit this issue when we discuss normalizations in common use.
-
-## Random processes in sequencing
-
-The random sampling process in DNA sequencing has at least three overlapping stochastic processes; environmental sampling, fragment sampling and multiplex sampling.
-
-Sampling from the environment is random since the investigator never collects all the DNA samples from an environment, but rather collects a small aliquot from a specific time or place in the environment. Only the DNA molecules actually collected are used to make the DNA library, and these molecules are assumed to be representative of the environment. Note that an environment may not be uniform. For example, it has been observed that different microbial compositions are observed when collecting stool samples if a sample is taken from the interior or exterior of the stool [@Gorzelak:2015aa].
-
-Fragment sampling occurs because as noted above the fragments actually sequenced are a random sample of the fragments that are in the sequencing library. There are always more fragments in the library than can be accommodated on the instrument, and there are almost always more molecules in the environment than can be accommodated in the library. The sole exception to this rule would be when sequencing is used to investigate low biomass environments---however in this case the library protocols always have an amplification step that increases the number of fragments above the number that can be accommodated on the instrument. The fragment sampling occurs by a multivariate Poisson process [@fernandes:2013] as outlined below.
-
-Two or more independent libraries are mixed together into a multiplex library, and this adds a third level of randomness into the process. The number of fragments in each library is one of the strongest influences on the apparent information in the sample [@Horner-Devine:2004aa;@Weiss:2017aa]. The number of fragments observed post sequencing is termed the `library size' or the 'depth of coverage'.  In other words, the number of fragments identified in a sample post sequencing is a confounding variable.
+The random sampling can be direct at the level of sampling from the environment. In the case of genomics or metagenomics DNA is made directly from the sample. Sampling can be indirect in the case of RNA-seq where RNA molecules are sampled after they have been converted to DNA via reverse transcription. Note that an environment may not be uniform. For example, it has been observed that different microbial compositions are observed when collecting stool samples if a sample is taken from the interior or exterior of the stool [@Gorzelak:2015aa]. Sampling can also be indirect in the case of tag-sequencing or single cell sequencing. In tag-sequencing, most typically applied to 16S rRNA gene sequencing, a small defined region is amplified by the PCR, and the amplimer size is usually compatible with the sequencing instrument. In single cell sequencing the molecules from a single cell are fragmented and amplified as a mixture.
 
 
-## Formal demonstration
+Fragment sampling occurs because as noted above the fragments actually sequenced are a random sample of the fragments that are in the sequencing library. There are always more fragments in the library than can be accommodated on the instrument, and there are almost always more molecules in the environment than can be accommodated in the library. The sole exception to this rule would be when sequencing is used to investigate low biomass environments---however in this case the library protocols always have an amplification step that increases the number of fragments above the number that can be accommodated on the instrument. The fragment sampling occurs by a multivariate Poisson process [@fernandes:2013] as outlined below. After the DNA is made and fragmented, an aliquot of the population of DNA fragments are used to make a \emph{sequencing library} by attaching standard sequences that permit the DNA fragments to be bound to the solid phase of the sequencing chip that is particular to a given platform. Fragmentation is not typically employed in tag-sequencing since the amplified DNA fragments are typically small.
+
+Finally, a sample of the library is loaded onto a sequencing platform. At this point two or more independent libraries are usually mixed together into a multiplex library, and this adds a third level of randomness into the process. The number of fragments in each library is one of the strongest influences on the apparent information in the sample [@Horner-Devine:2004aa;@Weiss:2017aa]. In other words, the number of fragments identified in a sample post sequencing is a confounding variable.  The number of fragments observed post sequencing is termed the 'library size' or the 'depth of coverage'.  It is important to remember, again,  as outlined in Chapter \ref{sequencing} that all sequencing platforms in widespread use contain a fixed number of locations to which the  DNA fragments can bind.
+
+If the number of DNA fragments sequenced has an arbitrary upper bound determined by the machine, and the number of fragments in the library is always larger than the machine capacity, then it should be obvious that the number of fragments sequenced can contain no information about the \emph{number} of fragments in the library pool, nor can the number of fragments contain information about the \emph{number}  of molecules in the original DNA sample from the environment. The univariate logical equivalent is to only know the percentage that a suit is marked down to, without knowing the original price: the customer would have no idea whatsoever about how much money it costs, only that they were getting a helluva deal. The multivariate intuition is that we cannot know the number of balls of different colour in the urn, we can only infer their proportions.
+
+Looking back at the GregSeq example in Figure \ref{RALT}, if we always recover 16 entities, and all of them are ladybugs, we cannot know if the sample was from a high or low density of ladybugs. All we can say is that we only recovered ladybugs. Therefore, the only information available is the \emph{relative} proportion of individual fragments in the library, which is assumed to approximate the relative proportion of fragments in the  DNA sample from the environment. We will revisit this issue when we discuss normalizations in common use.
+
+
+## Formal description
 
 ### Definitions and notation
 
 1. sample vector $\vect{s}_i$
 2. samples $i=1 \ldots n$
-3. feature vector $vect{f}_j$
+3. feature vector $\vect{f}_j$
 4. features or parts $j=1 \ldots D$
 5. feature value $\textbf{s}_{ij}$
 6. the environment $\Omega$
 7. sample geometric means $g_i= ( \prod_{1}^{D} s_i )^{1/D}$
 8. random instances of the data $k=1 \ldots m$
 
-It is worth recalling that essentially all HTS data come from underpowered experimental designs, in the sense that there are more features than there are samples: indeed it is common, because of cost to conduct and analyze only pilot-scale experiments. Thus, the strength of evidence for statistical inference must be weak, but paradoxically, the features that are identified as differentially abundant must \emph{appear to be very different}, much more so than the actual data support  [@Colquhoun:2014aa;@Halsey:2015aa]. Any results can only be validated by independent replication, meta-analysis assuming all experiments are published, or by an orthogonal method [@Cumming:2008aa]. All of which are rare in both the transcriptome and microbiome fields.
+It is worth recalling that essentially all HTS data come from underpowered experimental designs, in the sense that there are more features than there are samples: indeed it is common, because of cost to conduct and analyze only pilot-scale experiments. Therefore, we collect far fewer samples than required for true statistical power. Thus, the strength of evidence for statistical inference must be weak. Paradoxically, the features that are identified as differentially abundant must \emph{appear to be very different}, much more so than the actual data support  [@Colquhoun:2014aa;@Halsey:2015aa]. The combination of small sample sizes, large numbers of variables and the mis-use of the null-hypothesis testing framework are a deadly combination [@forking:2013].
+
+Any results can only be validated by independent replication, meta-analysis assuming all experiments are published, or by an orthogonal method [@Cumming:2008aa]. All of which are rare in both the transcriptome and microbiome fields.
 
 When estimating differential abundance it is important to properly estimate the dispersion, $\tau$, of the $j^{th}$ feature for all samples; dispersion of a feature can be represented by the following simple model:
 
@@ -40,34 +39,55 @@ When estimating differential abundance it is important to properly estimate the 
 \end{equation}
 
 
-where $\nu$ represents the underlying biological variation and $\epsilon$ represents the stochastic error  from all the steps involved in the collection, preparation, and sequencing of the dataset outlined above. All these steps involve some kind of random sampling from a larger pool of molecules, and so can be approximated by a model of drawing different colors of balls from an urn that contains many more balls than are drawn. Under this assumption, repeated sampling of each features would be expected to be distributed according to a Poisson distribution.
+where $\nu$ represents the underlying biological variation and $\epsilon$ represents the stochastic error  from all the steps involved in the collection, preparation, and sequencing of the dataset outlined above. All these steps involve some kind of random sampling from a larger pool of molecules, and so can be approximated by a model of drawing different colors of balls from an urn that contains many more balls than are drawn. Under this assumption, repeated sampling of each feature would be expected to be distributed according to a Poisson distribution. Given that the samples are multivariate, we expect a multivariate Poisson sampling process to be appropriate, and this is equivalent to sampling from a Dirichlet distribution with a uniform prior [@fernandes:2013].
 
-The majority of extant analysis tools utilize point estimates of both parameters. First, it is generally assumed that  $\epsilon$ is small relative to $\nu$. Second, it is assumed that there is some underlying similarity in the distribution of $\nu$ and $\epsilon$  for all features in all samples at a given relative abundance level. That is, if the $j$ features were ordered by abundance, that the expected value of $\nu_j$ would be  approximately
+The majority of extant analysis tools utilize point estimates of both parameters and there are several underlying similarities in these models. First, it is generally assumed that  $\epsilon$ is small relative to $\nu$. Second, it is assumed that there is some underlying similarity in the distribution of $\nu$ and $\epsilon$  for all features in all samples at a given relative abundance level. That is, if the $n$ features were ordered by abundance, that the expected value of $\nu_j$ would be  approximately
 
 \begin{equation}
 \sum \nu_{j-m} \ldots \nu_{j+m} / 2m
 \end{equation}
 
 
-where \textit{m} is some small offset in the abundance index. Similar logic applies to estimating the expected value of $\epsilon$, but many tools offer  more complex additional models to estimate these parameters for troublesome data.
+where \textit{m} is some small offset in the abundance index. Similar logic applies to estimating the expected value of $\epsilon$, but many tools offer  more complex additional models to estimate these parameters for troublesome data. Third, the data are observed to be over-dispersed; that is, the data are observed to have a greater variance than expected from Poisson sampling alone.
 
-```{r poisson, echo=TRUE}
-n.sam <- 50
-n.rep <- 1000
-z <- floor(runif(n.sam, 1, n.rep))
-z[1:10] <- floor(runif(10,1,20))
-z[11:20] <- floor(runif(10,20,50))
-z.dir <- rdirichlet(n.rep, z)
-z.pois <- matrix(data=NA, nrow=n.rep, ncol=n.sam)
-for(i in 1:n.rep){z.pois[i,] <- rpois(n.sam, z)}
-z.pois.p <- t(apply(z.pois, 1, function(x) x/sum(x)))
-plot(apply(z.dir, 2, var), apply(z.pois, 2, var), log="xy")
-abline(0,1)
+The overdispersion has led many tools to model the dispersion using a negative-binomial model, where the dispersion can be greater than the mean. The negative-binomial model is very attractive and widely used in both transcriptome and microbiome studies [@Gierlinski:2015aa;@McMurdie:2014a;@Kvam:2012;@Robinson:2010]. Fortunately negative binomial based models work well when the samples are collected from environments near the constrained end of the spectrum. Unfortunately, these models do not fare as well at the un-constrained end of the spectrum [@gloorAJS:2016;@fernandes:2014;@macklaim:2013;@fernandes:2013], and even worse, tools based on these models rarely fail gracefully with a helpful error.
+
+
+So why are sequence count data over-dispersed? That there  is overdispersion is noted, why is rarely discussed. I suggest that the overdispersion is a consequence of the sequence constraint, and I will revisit in greater detail when we introduce compositional data in Chapter \ref{CoDa}. However, as shown in Figure \ref{poisson}, the variance can be measured in different ways.
+
+When absolute  variance is measured and plotted vs. sample count, the variance approximates the count as shown by the dotted grey line of equivalence. This is what is expected from a multivariate Poisson process. However, as we shall see in Chapter \ref{CoDa}, actual variance is usually somewhat greater than the mean in real datasets.
+
+When the variance of the ratio of the random samples to the actual data is plotted vs. the sample count the relationship between variance and sample count is exactly reversed. Here the variance is greatest at the low count margin and least at the high count margin. We will return to this point in Chapter \ref{CoDa}, but at this point, the reader needs to know that HTS data are \emph{relative and ratio} data by construction.
+
+
+```{r poisson, echo=TRUE, fig.width=6.5, fig.height=4, fig.cap="Variance in constrained data is not what we expect. Numbers between 1 and 1000 were generated (the sample) and converted to 50 random instances using a multivariate Poisson process by sampling from the Dirichlet distribution (the instances).  The absolute variance of 50 random instances was determined and plotted as the absolute variance of the instances vs. the sample count value. The data was transformed by converting each count to the ratio of the instance count to the sample count (relative value) and the variance of these relative values were plotted. The relative variance is greatest at the low count margin and smallest at the high count margin as is observed for actual sequencing data [@fernandes:2013;@gloorAJS].   "}
+n.sam <- 50 # samples
+max.num <- 100000 # max value
+# semi-random vector
+z <- floor(runif(n.sam, 1, max.num)) # get random integer values
+z[1:2] <- c(1,2) # ensure always 1 and 2 values
+z[3:10] <- floor(runif(8,3,20)) # some small values
+z[11:20] <- floor(runif(10,21,50)) # some intermediate values
+
+# samples by row, features, by column
+# random counts from multivariate Poisson
+z.dir <- rdirichlet(n.sam, z) * sum(z)
+abs.var <- apply(z.dir, 2, var)
+
+# relative counts
+z.r <- t(apply(z.dir, 1, function(x) x / z) )
+
+par(mfrow=c(1,2))
+plot(log10(z), apply(z.dir, 2, var), main="Absolute variance", log = "y",
+    ylab="Variance", xlab="log10(count)")
+abline(0,1, lty=2, col="grey")
+plot(log10(z), apply(z.r, 2, var), main="Relative variance", log="y",
+    ylab="Variance", xlab="log10(count)")
+abline(0,-1, lty=2, col="grey")
 
 ```
 
-However, we  observed that $\epsilon$ can be exponentially larger than $\nu$ at the low count margin [@fernandes:2013;@gloorAJS:2016], and that properly accounting for this realization alone can result in an excellent fit to even problematic data. Thus, a reliable analysis can be obtained by incorporating an `in silico' technical replication which explicitly models the variation in $\epsilon$ as a probability density function on a per feature, per sample basis; in other words that $\tau_{j} = \nu_j + f(\epsilon_{j})$. This approach is implemented in the ALDEx2 Bioconductor package and substantially reduces the false positive identification rate in microbiome and transcriptome data while maintaining an acceptable true positive identification rate [@Thorsen:2016aa].
-
+We  observed that $\epsilon$ can be exponentially larger than $\nu$ at the low count margin when measured on a relative scale [@fernandes:2013;@gloorAJS:2016], and that properly accounting for this realization alone can result in an excellent fit to even problematic data. Thus, a reliable analysis can be obtained by incorporating an `in silico' technical replication which explicitly models the variation in $\epsilon$ as a probability density function on a per feature, per sample basis; in other words that $\tau_{j} = \nu_j + f(\epsilon_{j})$. This approach is implemented in the ALDEx2 Bioconductor package and substantially reduces the false positive identification rate in microbiome and transcriptome data while maintaining an acceptable true positive identification rate [@Thorsen:2016aa].
 
 The differences between groups, dispersion within groups and relative abundance were calculated using the ALDEx2 R package that uses Bayesian modelling that generates a probability function for  $\epsilon_j$ that can be used to place bounds on the uncertainty of the the observed data [@fernandes:2013;@gloorAJS:2016]. If there are two groups, A and B,  this requires that the data comparison is properly centred on the difference between these groups. ALDEx2 has been shown to give meaningful and reproducible results, even on sparse, asymmetric datasets using many different experimental designs [@fernandes:2013;@macklaim:2013;@fernandes:2014;@mcmurrough:2014], although as shown here the asymmetry can still affect the outcome.
 
@@ -97,4 +117,4 @@ The starting point for analysis is an \emph{n} samples $\times D$ features  arra
 This approach has consistent sampling properties and removes the problem of taking a logarithm of 0 when calculating the CLR because the count 0 values are replaced by positive non-zero values that are consistent with the observed count data [@fernandes:2013;@gloorAJS:2016]. Each of the Monte-Carlo instances, by definition, conserves proportionality and accounts for the fact that there is more information when $\alpha_i$ is large than when it is small. This partially restores scale invariance to the data by providing a distribution of values where the uncertainty of  features scales inversely with the read depth [@fernandes:2013;@gloorAJS:2016].
 
 
-The apparent solution to the sequencing depth problem is to normalize the read count values across samples in some way. One method of normalization to is by subsampling, often termed rarefaction, as this is observed to reduce the influence of sequencing depth on variation in $\alpha$ and $\beta$ diversity metrics [@Horner-Devine:2004aa;@Weiss:2017aa]. Another is to convert the data to proportions or percentages; these latter values are widely spoken of in the literature as `relative abundances'. Subsampling is frequently used to estimate the associated sampling error. Some groups have begun advocating the use of  normalization methods prevalent in the RNA-seq field[@McMurdie:2014a] but still treat the data as point estimates of the true abundance. There are many other normalizations that are used in the ecological and high throughput sequencing literature and the purpose and effect of these on simulated data are explored in the section on Data Transformations.
+The apparent solution to the sequencing depth problem is to normalize the read count values across samples in some way. One method of normalization to is by subsampling, often termed rarefaction, as this is observed to reduce the influence of sequencing depth on variation in $\alpha$ and $\beta$ diversity metrics [@Horner-Devine:2004aa;@Weiss:2017aa]. Another is to convert the data to proportions or percentages; these latter values are widely spoken of in the literature as `relative abundances'. Subsampling is frequently used to estimate the associated sampling error. Some groups have begun advocating the use of  normalization methods prevalent in the RNA-seq field [@McMurdie:2014a] but still treat the data as point estimates of the true abundance. There are many other normalizations that are used in the ecological and high throughput sequencing literature and the purpose and effect of these on simulated data are explored in the section on Data Transformations.

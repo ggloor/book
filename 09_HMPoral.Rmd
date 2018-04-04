@@ -1,0 +1,194 @@
+# HMP oral microbiota exploration {#oral}
+
+\hspace{2cm}\begin{minipage}[ct]{10cm}
+\parskip=5pt
+\parindent=5pt
+This example was first presented as part of the CoDa microbiome tutorial in Hinxton, UK in September 2016 at the Human-host microbe interactions conference. Dr. Jean Macklaim co-wrote and did trouble-shooting of this tutorial. It has been modified for clarity and completeness for this book.
+\end{minipage}
+\vspace{1cm}
+
+We start the differential abundance analysis using a simple dataset derived from the original HMP oral microbiota dataset. This dataset is used because it is exceedingly sparse and so a good test of the method.
+
+The first task is to read in the data and to generate the ALDEx2 output. The data contains 187 attached keratinized gingeva (ak) and  186 outside plaque (op) samples.
+
+
+```{r hmp_akop_aldex, echo=TRUE,eval=FALSE}
+# The Basic ALDEx2 workflow for two conditions
+
+# this has been modified to reduce the number of Dir monte-carlo instances
+# I suggest generating sufficient Dir MCI to get at least 4000 when
+# the product of the number of samples in the smallest group x DMCI
+
+# this process can be slow, so I have pre-computed and saved the file
+
+
+# read the dataset
+d.subset <- read.table(paste(tutorial_data, "ak_vs_op.txt", sep=""),
+    row.names=1, header=T)
+# make a vector containing the two names of the conditions
+# in the same order as in the column names
+d.conds <- c(rep("ak", length(grep("ak", colnames(d.subset))) ),
+    rep("op", length(grep("op", colnames(d.subset)))) )
+# generate Monte-Carlo instances of the probability of observing each count
+# given the actual read count and the observed read count.
+# this returns a set of clr values, one for each MC instance, which
+# constitutes a distribution of clr values
+# note that the latest version of ALDEx2 requires conds explicitly
+d.x <- aldex.clr(d.subset, conds=d.conds, mc.samples=22)
+# calculate effect sizes for each mc instance, report the expected value
+d.eff <- aldex.effect(d.x, d.conds, include.sample.summary=TRUE)
+# perform parametric or non-parametric tests for difference
+# report the expected value of the raw and BH-corrected P value
+d.tt <- aldex.ttest(d.x, d.conds)
+# concatenate everything into one file
+d.all <- data.frame(d.eff,d.tt)
+
+write.table(d.all, file=paste(tutorial_data, "ak_vs_op_aldex.txt", sep=""), sep="\t",
+    quote=FALSE, col.names=NA)
+```
+
+We display the results using a number of different plots in Figure \ref{hmp_aldex_plot} to show how each plot gives a different way of exploring the data.
+
+The mainstay that we advocate is the effect plot [@Gloor:2015], that plots the constituents of normalized change, or effect size. The effect plot shows the relationship between the between group difference and the within-group dispersion for each feature. The Bland-Altman plot [@altman:1983] shows the relationship between the between group difference and the relative abundance of each feature. The volcano plot [@Cui:2003aa] shows the relationship between fold-change and the logarithm of the p-value. Finally, the effect vs. p-value plot shows the relationship between effect size and p-value.
+
+
+
+```{r hmp_aldex_plot, echo=FALSE, eval=TRUE, results='as.is', fig.width=7, fig.height=8, error=FALSE, message=FALSE, warning=FALSE, fig.cap="Plotted here are taxa with no difference between groups (grey), a statistically difference between groups (red), and with an effect larger than 1 (blue circles). These are plotted using different plots (described clockwise from top left). The effect plot [@Gloor:2015] illustrates the difference between groups vs. the dispersion (variance) within groups. If the effect is greater than one (outside the grey lines), then, on average the taxa are separable by eye when plotted; roughly, they would be seen to have a greater difference than standard deviation. Effect is a more robust measure of difference than are P values, since the latter depend on sample size; large sample sizes will always give low P values [@Halsey:2015aa]. We can see this here where the large sample size means that even highly variable OTUs are significantly different. The Bland-Altman plot [@altman:1983] compares difference and abundance, and is often seen in RNA-Seq data. The Volcano plot [@Cui:2003aa] shows the association between difference and P value, and the final plot shows the association between effect and P value. "}
+
+x.all <- read.table(paste(tutorial_data, "ak_vs_op_aldex.txt", sep=""),
+   header=T, row.names=1)
+
+# get 'significant' set
+sig <- x.all$we.eBH < 0.05
+eff <- abs(x.all$effect) > 1
+
+# plot all in transparent grey
+# low BH-corrected p values as red
+# effect sizes > 1 as blue+red
+par(fig=c(0,1,0,1), new=TRUE)
+
+par(fig=c(0,0.5,0.5,1), new=TRUE)
+plot(x.all$diff.win, x.all$diff.btw, col=rgb(0,0,0,0.3), pch=19,
+    cex=0.5, ylim=c(-6,6), xlim=c(0,6), xlab="dispersion",
+    ylab="difference", main="Effect plot")
+points(x.all$diff.win[sig], x.all$diff.btw[sig],
+    col=rgb(1,0,0,0.3), pch=19, cex=0.5 )
+points(x.all$diff.win[eff], x.all$diff.btw[eff],
+    col=rgb(0,0,1,0.6), pch=21, cex=0.7 )
+abline(0,1, lty=2, lwd=2, col=rgb(0,0,0,0.4))
+abline(0,-1, lty=2, lwd=2, col=rgb(0,0,0,0.4))
+
+par(fig=c(0.5,1,0.5,1), new=TRUE)
+plot(x.all$rab.all, x.all$diff.btw, col=rgb(0,0,0,0.3), pch=19,
+    cex=0.5, ylim=c(-6,6), xlab="clr abundance", ylab="difference",
+    main="Bland-Altman plot")
+points(x.all$rab.all[sig], x.all$diff.btw[sig], col=rgb(1,0,0,0.3),
+    pch=19, cex=0.5 )
+points(x.all$rab.all[eff], x.all$diff.btw[eff], col=rgb(0,0,1,0.6),
+    pch=21, cex=0.7 )
+
+par(fig=c(0,0.5,0,0.5), new=TRUE)
+plot(x.all$diff.btw, -1 * log10(x.all$wi.ep), col=rgb(0,0,0,0.3), pch=19,
+    cex=0.5, xlab="difference", ylab="-1 * log p value",
+    main="Volcano plot")
+points(x.all$diff.btw[sig], -1 * log10(x.all$wi.ep[sig]), col=rgb(1,0,0,0.3),
+    pch=19, cex=0.5 )
+points(x.all$diff.btw[eff], -1 * log10(x.all$wi.ep[eff]), col=rgb(0,0,1,0.6),
+    pch=21, cex=0.7 )
+
+par(fig=c(0.5,1,0,0.5), new=TRUE)
+plot(x.all$effect, -1 * log10(x.all$wi.ep), col=rgb(0,0,0,0.3), pch=19,
+    cex=0.5,  xlab="effect", ylab="-1 * log p value",
+    main="Effect vs. p plot")
+points(x.all$effect[sig], -1 * log10(x.all$wi.ep[sig]), col=rgb(1,0,0,0.3),
+    pch=19, cex=0.5 )
+points(x.all$effect[eff], -1 * log10(x.all$wi.ep[eff]), col=rgb(0,0,1,0.6),
+    pch=21, cex=0.7 )
+
+
+```
+
+
+Let's get a visual idea what is meant by the effect size as used in ALDEx2 using two significant features. OTU 3760 has an effect size of 1.04, ol 0.107, we.eBH 5.2e-31, wi.eBH 7.6e-38, and OTU 7805 is still significant but has an effect size of about 0.25, ol 0.37, we.eBH 0.0055, wi.eBH 0.0002.
+
+
+```{r hmp_aldex_effect, echo=FALSE,eval=TRUE, results='as.is', fig.width=10, fig.height=6, error=FALSE, message=FALSE, warning=FALSE, fig.cap="Histograms showing the separation between groups when choosing OTUs with large effect sizes (left), or OTUs with small effect size (right). OTUs with the largest effect are the 'most reliably different' between groups, and should be chosen over those that are 'most significantly different' whenever possible."}
+
+par(mfrow=c(1,2))
+hist(as.numeric(x.all["3760", grep("ak", colnames(x.all))]), breaks=24,
+    col=rgb(0,0,1,0.5), xlim=c(-3, 10),ylim=c(0,40), main="Effect > 1",
+    xlab="rAB OTU 3760 in ak or op")
+hist(as.numeric(x.all["3760", grep("op", colnames(x.all))]), breaks=24,
+    col=rgb(1,0,0,0.5), add=T)
+abline(v=x.all["3760", "rab.win.ak"], lwd=2, lty=2, col="blue")
+abline(v=x.all["3760", "rab.win.op"], lwd=2, lty=2, col="red")
+legend(6, 30, legend=c("3760 in ak", "3760 in op"), col=c("blue", "red"), pch=15)
+
+hist(as.numeric(x.all["7805", grep("ak", colnames(x.all))]), breaks=24,
+    col=rgb(0,0,1,0.5), xlim=c(-3, 7),ylim=c(0,40), main="Effect ~ 0.25",
+    xlab="rAB OTU 7805 in ak or op")
+hist(as.numeric(x.all["7805", grep("op", colnames(x.all))]), breaks=24,
+    col=rgb(1,0,0,0.5), add=T)
+abline(v=x.all["7805", "rab.win.ak"], lwd=2, lty=2, col="blue")
+abline(v=x.all["7805", "rab.win.op"], lwd=2, lty=2, col="red")
+abline(v=x.all["7805", "rab.win.ak"], lwd=2, lty=2, col="blue")
+abline(v=x.all["7805", "rab.win.op"], lwd=2, lty=2, col="red")
+legend(3, 30, legend=c("7805 in ak", "7805 in op"), col=c("blue", "red"), pch=15)
+
+
+```
+
+
+
+\newpage
+
+
+```{r, echo=FALSE,eval=TRUE, results='as.is', fig.width=7, fig.height=7, error=FALSE, message=FALSE, warning=FALSE, fig.cap="The same plots for the supra and subgingival plaque samples. We see that we have statistical significance, but the biological relevance is difficult to defend because of the very small effect sizes."}
+y.all <- read.table(paste(tutorial_data, "up_vs_op_aldex.txt",sep=""), header=T, row.names=1)
+
+# get 'significant' set
+sig <- y.all$wi.eBH < 0.05
+eff <- abs(y.all$effect) > 1
+
+# plot all in transparent grey
+# low BH-corrected p values as red
+# effect sizes > 1 as blue+red
+par(fig=c(0,1,0,1), new=TRUE)
+
+par(fig=c(0,0.5,0.5,1), new=TRUE)
+plot(y.all$diff.win, y.all$diff.btw, col=rgb(0,0,0,0.3), pch=19,
+    cex=0.5, ylim=c(-6,6), xlim=c(0,6), xlab="dispersion", ylab="difference",
+    main="Effect plot")
+points(y.all$diff.win[sig], y.all$diff.btw[sig], col=rgb(1,0,0,0.3), pch=19, cex=0.5 )
+points(y.all$diff.win[eff], y.all$diff.btw[eff], col=rgb(0,0,1,0.6), pch=21, cex=0.7 )
+abline(0,1, lty=2, lwd=2, col=rgb(0,0,0,0.4))
+abline(0,-1, lty=2, lwd=2, col=rgb(0,0,0,0.4))
+
+par(fig=c(0.5,1,0.5,1), new=TRUE)
+plot(y.all$rab.all, y.all$diff.btw, col=rgb(0,0,0,0.3), pch=19,
+    cex=0.5, ylim=c(-6,6), xlab="clr abundance", ylab="difference",
+    main="Bland-Altman plot")
+points(y.all$rab.all[sig], y.all$diff.btw[sig], col=rgb(1,0,0,0.3), pch=19, cex=0.5 )
+points(y.all$rab.all[eff], y.all$diff.btw[eff], col=rgb(0,0,1,0.6), pch=21, cex=0.7 )
+
+par(fig=c(0,0.5,0,0.5), new=TRUE)
+plot(y.all$diff.btw, y.all$wi.ep, col=rgb(0,0,0,0.3), pch=19,
+    cex=0.5, xlab="difference", ylab="log p value",
+    main="Difference vs. p plot", log="y")
+points(y.all$diff.btw[sig], y.all$wi.ep[sig], col=rgb(1,0,0,0.3), pch=19, cex=0.5 )
+points(y.all$diff.btw[eff], y.all$wi.ep[eff], col=rgb(0,0,1,0.6), pch=21, cex=0.7 )
+
+par(fig=c(0.5,1,0,0.5), new=TRUE)
+plot(y.all$effect, y.all$wi.ep, col=rgb(0,0,0,0.3), pch=19,
+    cex=0.5,  xlab="effect", ylab="log p value",
+    main="Effect vs. p plot", log="y")
+points(y.all$effect[sig], y.all$wi.ep[sig], col=rgb(1,0,0,0.3), pch=19, cex=0.5 )
+points(y.all$effect[eff], y.all$wi.ep[eff], col=rgb(0,0,1,0.6), pch=21, cex=0.7 )
+
+
+```
+
+\newpage
+#References
+
+

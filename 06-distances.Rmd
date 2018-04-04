@@ -1,0 +1,197 @@
+# Distances in high throughput sequencing {#distances}
+
+
+## Distance or dissimilarity metrics
+
+The microbiome and transcriptome literature are replete with distance metrics, and it is common to find that a single study will use several distance metrics to report their findings. This is a problem since it suggests that practitioners are unsure of the reason to use a metric; consequently, the use of more than one metric leads to data dredging and research degrees of freedom---both of which increase the chances of finding false positives in the data to a surety.
+
+![Two primary distance metrics are Euclidian and Manhattan. Euclidian distance is simply the straight-line distance between two points, A and B. Manhattan distance, also called city block distance, is the distance parallel to the axes of the co-ordinate system. Many other distances are in use, but these two and their derivatives are the most widespread. ](./figs/distance.pdf)
+
+
+Distance metrics can be broadly divided into those that require partitioning and those that do not. The UniFrac [@Lozupone:2011aa;@unifrac:2005] and philr [@Silverman:2017aa] both require a phylogenetic tree, making these metrics applicable only to situations where the features can be so partitioned. For example, these distances are useful when examining 16S rRNA gene sequencing experiments. We have found that the unweighted UniFrac method is unreliable, and should be used with caution [@Wong:2016aa}, a point that was made in the original UniFrac paper and subsequently forgotten. The philr metric is a drop-in replacement for the weighted UniFrac distance metric and should be used whenever possible, since `philr` is an ilr transformation of the data where the sequential binary partitions are made along the phylogenetic tree. The `philr` transformation is thus compositionally appropriate. In practice, the weighted UniFrac distance metric provides similar results to the Aitchison distance, described below, and the ilr distance calculated using the philr transform approaches the Aitchison distance when the number of features is large.
+
+Several non-phylogenetic distances are in widespread use in the literature, and since the phylogenetic (or partitioning) distances are difficult to apply to RNA-seq data, we will not illustrate these. Non-phylogenetic distance metrics will be discussed in turn below, and their effects on distances between a random samples illustrated.
+
+### Distances in counts and proportion}
+
+Ideally, we use distance metrics to inform us as to something of relevance in the actual sample. That is, if we collect our data on the numbers of tigers, ladybugs, Rabbits and space aliens, what can we infer about the actual data \emph{after  sequencing}?  which as we have seen, is the same as asking what can we infer after converting the data to relative abundances (proportions)?
+
+
+There are two main ways to think about distances: Euclidian and Manhattan. The Euclidian distance is the straight-line distance between two points. If we have a rectangular room, the Euclidian distance between two corners would be the distance travelled by walking diagonally across the room from one corner to the other. The Manhattan distance would be the distance travelled by walking along the walls between the two corners. Obviously, the Manhattan distance will always be larger than the Euclidian distance. So how do these two simple metrics, and others derived from them, compare when calculate on numbers and on compositions?
+
+In an ideal world when dealing with compositions, we would like a distance metric that gives us an interpretable and stable measure of distance between samples. Distances between samples should be:
+
+- scale invariant (S): that is the distance between samples should not differ if we use proportions or percentages (or any other denominator).
+- subcompositional dominant (D): that is the distance between samples that contain all the features should be equal to or greater than the distance between the samples when one or more features are removed.
+- perturbation invariant (P): that is the distance between samples should be unchanged if we translate or rotate them in space.
+
+
+Martin-Fernandes [-@martin1998measures] provide a very simple test that can be used to determine if a distance metric is compositionally appropriate. We start with four samples, x1 to x4 that contain three features each, and measure the distance between the samples following a perturbation, or following feature subsetting. The perturbed samples are labeled p1 to p4, and the subset samples containing only the first two features are called s1 to s4.
+
+
+```{r distdata, echo=TRUE}
+x1 <- c(1,2,7) * 0.1
+x2 <- c(2,1,7) * 0.1
+x3 <- c(3,4,3) * 0.1
+x4 <- c(4,3,3) * 0.1
+
+x <- rbind(x1,x2,x3,x4)
+
+s <- apply(x[,1:2], 1, function(x) x/sum(x))
+s <- rbind(s,c(0,0,0,0))
+
+x.p <- t( t(x) * c(8,1,1) ) # perturbation, samples by row
+
+p <- t(apply(x.p, 1, function(z) z/sum(z)))
+```
+This dataset is constructed so that the x1:x2 distance is greater than the x3:x4 distance [@martin1998measures]. This is a bit counterintuitive when examining the vectors since in both, the only difference is in the first two features, and so these features determine the distance. In both cases the two first features differ by 0.1, and so if we treat these as non-compositional data we would infer that the x1:x2 distance is equal to the x3:x4 distance. However, since the data are compositional we must interpret the relative values: the first feature in x1 is 0.5 that of the first feature in x2 whereas the first feature in x3 is x4 is 0.75 that of the first feature in x4. The second feature is the inverse relative difference. Thus, since the fold difference between the first two features of x1 and x2 are larger than the fold difference between the first two features of x3 and x4, the distances between the pairs of samples must be correspondingly different. When dealing with the subcomposition, the distances are unchanged, because the ratios between the first two features is unchanged, we have only dropped the non-informative last feature.
+
+The relationships between the full composition and the subcomposition can be observed in Figure \ref{fig:R-disttest}. The perturbed dataset is simply a translation of the data on the simplex and should not change the distance between samples. The ternary plot shows that our visual intuition breaks down when examining data on a simplex because the features are not linearly different in a composition. It is helpful to think that a simplex is akin to a distorted map projection where we are trying to show the relationships between the continents on a globe but projected onto a flat map.
+
+```{r R-disttest, fig.height=8, fig.width=8, results="show", echo=FALSE, message=F, error=F, warnings=F, out.width="70%", fig.align ='center', fig.cap="Ternary plot of toy data showing compositional properties. The simplex is the natural space of proportional data, or equivalently, probabilistic data, and contains one fewer dimension than does the data. The location of the four samples on the simplex are shown, along with their location after perturbation. The proportion of each feature in each sample determines the location of the feature on the simplex plot. The proportion of 1 is at the vertex with the label for each feature. The pink dashed line shows the projection of the data onto the F1-F2 proportion when feature 3 (F3) is removed. Distances on the simplex are not necessarily intuitive, since the x1, x2 distance is about twice that of the x3, x4 distance, although on the plot the distances appear similar. This is because distances are non-linear and become more distorted as the margin of the plot is approached: see [@martin1998measures] for an explanation of this."}
+
+x.2 <- rbind(x, p)
+x.3 <- data.frame(t(x.2), s)
+data_points <- as.list(x.3)
+
+TernaryPlot(atip="F1", btip="F2", ctip="F3")
+
+AddToTernary(points, data_points,
+  pch=c(0,1,2,5, 15,16,17,18, 12, 10, 11,9))
+legend('topright', pch=c(0,1,2,5, 15,16,17,18, 12, 10, 11,9),
+  legend=c("x1", "x2", "x3", "x4","p1", "p2", "p3", "p4","s1", "s2", "s3", "s4"))
+TernaryLines(list(c(0,0,1),c(2,1,0)), lty=2, lwd=2, col="pink")
+TernaryLines(list(c(0,0,1),c(1,2,0)), lty=2, lwd=2, col="pink")
+
+TernaryLines(list(c(0,0,1),c(3,4,0)), lty=3, lwd=2, col="lightblue")
+TernaryLines(list(c(0,0,1),c(4,3,0)), lty=3, lwd=2, col="lightblue")
+```
+
+\begin{table}[!h]
+\caption{Distance metrics on the simplex. The x1,x2 distance should be larger than the x3,x4 distance, the distance should be the same if we change the scale (S), the perturbation should not change the distances since it is simply a translation (P), and the distance between sample subcompositions should be no larger than the full composition (D). Among the distances compared, only the Aitchison distance---the Euclidian distance of the clr values---fulfills these properties. }\vspace{0.2cm}
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{l r r r r r r}
+\hline
+Metric (SDP) & d(x1,x2) & d(p1,p2) & d(s1,s2) & d(x3,x4) & d(p3,p4) & d(s3,s4) \\ \hline \hline
+Euclidian (---) & 0.14 & 0.24 & 0.47 & 0.14 & 0.09 & 0.20\\
+Manhattan (---) & 0.20 & 0.40 & 0.67 & 0.20 & 0.14 & 0.29\\
+Bray-Curtis (S--) & 0.10 & 0.20 & 0.33 & 0.10 & 0.06 & 0.14\\
+JSD (SD-)& 0.13 & 0.15 & 0.13 & 0.08 & 0.06 & 0.08\\
+Aitchison (SDP) & 0.98 & 0.98 & 0.98 & 0.41 & 0.41 & 0.41\\ \hline
+\end{tabular}
+}
+\label{tab:metrics}
+\end{table}
+
+Table \ref{tab:metrics} shows the properties of several distance metrics on the synthetic vectors. By definition, the Euclidian and Manhattan distances are not scale invariant, perturbation invariant, nor are they subompositionally dominant. These metrics should \emph{never} be used for proportional (compositional) data. The Bray-Curtis dissimilarity (or if symmetrized Bray-Curtis distance) is scale invariant by definition since all values are scaled between 0 and 1. However, the Bray-Curtis dissimilarity is not subcompositionally dominant, nor is it perturbation invariant. Thus, the Bray-Curtis metric will be sensitive to the choice of features that are included in the analysis, and raw and normalized data are expected to give different results.
+
+The Jensen-Shannon Distance is a symmetrized version of the Kulback-Leibler divergence metric that is widely used when comparing probability vectors [REF, REF]. This metric is both scale invariant and subcompositionally dominant. Thus, the JSD would be expected to give results consistent with the whole when used on subsets of the data.  However, the JSD metric is not perturbation invariant, and so will not give the same results on the raw and transformed data.
+
+The Aitchison distance is the Euclidian distance calculated on the log-ratio transformed data; here we use the clr transform. The Aitchison distance fulfills all properties and so is expected to give consistent results when a dataset is subsetted, when the dataset is scaled, or when the dataset  is transformed. Thus, this distance metric should be used whenever possible. The utility of the distance metrics are illustrated more fully below.
+
+## Graphical demonstration of distance pathologies
+
+I return now to the simple the Ladybugs (L), Tigers (T), Rabbits (R), and Aliens (A) dataset and examine the distance between samples using different metrics. Recall that we desire to find a distance metric that when used on the compositional data obtained after sequencing tells us something about the count data from the environment before sequencing. Thus, we should obtain a linear relationship between the count and compositional data if the distance metric is generally useful, and we compare the counts to both simple proportions and proportions after the DM transformation for all distance metrics.
+
+We first examine the simple Euclidian and Manhattan distances.
+
+```{r R-block-dist, fig.height=17, fig.width=15, results="show", echo=FALSE, message=F, error=F, warnings=F, out.width="80%", fig.align ='center', fig.cap="Scatter plot of the distances computed on numeric, proportional and DM-normalized data. The X-axis has the distances computed on the original numeric data, and the Y-axis has the distances computed on the same data converted to proportions, or when the proportions are count-normalized using the DM normalization. The distances for the count data and the proportions or the DM normalized data are obviously not linearly related."}
+
+# calculate all distances
+# reference distances on the count data
+dist.ran.dat <- as.matrix(vegdist(ran.dat, method="euclidian"))
+dist.ran.dat.MAN <- as.matrix(vegdist(ran.dat, method="manhattan"))
+dist.ran.dat.BC <- as.matrix(vegdist(ran.dat, method="bray"))
+dist.ran.dat.JSD <- as.matrix(dist.JSD(t(ran.dat)))
+dist.ran.dat.clr <- as.matrix(vegdist(ran.dat.num.clr, method="euclidian"))
+
+# distances on the proportions
+dist.ran.dat.prop <- as.matrix(vegdist(ran.dat.prop, method="euclidian"))
+dist.ran.dat.prop.MAN <- as.matrix(vegdist(ran.dat.prop, method="manhattan"))
+dist.ran.dat.prop.BC <- as.matrix(vegdist(ran.dat.prop, method="bray"))
+dist.ran.dat.prop.JSD <- as.matrix(dist.JSD(t(ran.dat.prop)))
+dist.ran.dat.prop.clr <- as.matrix(vegdist(ran.dat.clr, method="euclidian"))
+
+# distances on the DM transform of proportions
+dist.ran.dat.DM.BC <- as.matrix(vegdist(ran.dat.DM, method="bray"))
+dist.ran.dat.DM <- as.matrix(dist(ran.dat.DM, method="euclidian"))
+dist.ran.dat.DM.MAN <- as.matrix(dist(ran.dat.DM, method="manhattan"))
+dist.ran.dat.DM.JSD <- as.matrix(dist.JSD(t(ran.dat.DM)))
+dist.ran.dat.DM.clr <- as.matrix(vegdist(ran.dat.DM.clr, method="euclidian"))
+
+
+par(mfrow=c(2,2), pch=19, col=rgb(0,0,0,0.5),
+    cex=1.5, cex.lab=1.5)
+
+plot(dist.ran.dat[1,], dist.ran.dat.prop[1,],
+    xlab="Numeric", ylab="Proportional",
+    main="Euclidian")
+plot(dist.ran.dat.MAN[1,], dist.ran.dat.prop.MAN[1,],
+    xlab="Numeric", ylab="Proportional",
+    main="Manhattan")
+
+plot(dist.ran.dat[1,], dist.ran.dat.DM [1,],
+    xlab="Numeric", ylab="DM normalized",
+    main="Euclidian DM")
+plot(dist.ran.dat.MAN[1,], dist.ran.dat.DM.MAN[1,],
+    xlab="Numeric", ylab="DM normalized",
+    main="Manhattan DM")
+```
+
+The Euclidian and Manhattan distances are generally correlated, but not identical, when comparing distances in the original numeric data, or when the data are converted to proportions. However, the distances between samples are very different when comparing the numerical and proportional data. This tells us that the inferences we make from sequencing data can not translate to inferences about the actual abundances of features in the environment, but only to their relative abundances after sequencing. So which distance metric should we use for proportional data? It turns out that neither are suitable because these distance metrics assume linear differences between features, and this is not true in proportional data [@Aitchison:1986].
+
+Data normalizations are often touted as removing the compositionality of the data. We shall see that this is not true, and inappropriate data transformations confound, rather than providing clarity.
+
+Plotting three of the possible combinations, we can see that the features are essentially uncorrelated with each other and each sample is a random distances from any other. Any inference we make from transformations of this data must be relatable to this `ground truth'. I now run through each of the transformations in turn, and illustrate the difference between the actual data, and the transformed data.
+
+### Bray-Curtis Dissimilarity
+
+The Bray-Curtis dissimilarity is a modified Manhattan distance normalized to range between 0 and 1, thus the Manhattan distance and the Bray-Curtis (BC) distances are essentially linearly related changing only the scale of the measure. One quirk of the BC dissimilarity is that it cannot be calculated if any of the values in the matrix are less than, making it incompatible with logarithmic or log-ratio transformed data.
+
+```{r R-block-bray, fig.height=14, fig.width=12, results="show", echo=FALSE, message=F, error=F, warnings=F, out.width="80%", fig.align ='center', fig.cap="Scatter plot of Bray-Curtis dissimilarities, or Jensen-Shannon divergence  of numerical vs. proportional and DM normalized data."}
+
+par(mfrow=c(2,2), pch=19, col=rgb(0,0,0,0.5),
+    cex=1.5, cex.lab=1.5)
+
+plot(dist.ran.dat.BC[1,], dist.ran.dat.prop.BC[1,],
+    xlab="Numeric", ylab="Proportional",
+    main="Bray-Curtis")
+plot(dist.ran.dat.BC[1,], dist.ran.dat.DM.BC[1,],
+    xlab="Numeric", ylab="DM normalized",
+    main="Bray-Curtis DM")
+plot(dist.ran.dat.JSD[1,], dist.ran.dat.prop.JSD[1,],
+    xlab="Numeric", ylab="Proportional",
+    main="Jensen-Shannon")
+plot(dist.ran.dat.JSD[1,], dist.ran.dat.DM.JSD[1,],
+    xlab="Numeric", ylab="DM normalized",
+    main="Jensen-Shannon DM")
+
+```
+
+
+
+### Distances of clr transformed data
+
+The blah blah blah
+
+```{r R-clr-plot, fig.height=7, fig.width=12, results="show", echo=FALSE, message=F, error=F, warnings=F, out.width="80%", fig.align ='center', fig.cap="Scatter plot of Euclidian distances of the clr transformed numeric or proportional data. As above, DM indicates proportional data scaled by the DM normalization."}
+
+
+par(mfrow=c(1,2), pch=19, col=rgb(0,0,0,0.5),
+    cex=1.5, cex.lab=1.5)
+
+plot(dist.ran.dat.clr[1,], dist.ran.dat.prop.clr[1,],
+    xlab="Numeric", ylab="Proportional",
+    main="Euclidian clr")
+plot(dist.ran.dat.clr[1,], dist.ran.dat.DM.clr[1,],
+    xlab="Numeric", ylab="DM normalized",
+    main="Euclidian clr DM")
+```
+
+\texttt{plot\_ly(x=ran.dat[,"L"], y=ran.dat[,"T"], z=ran.dat[,"R"])}
+
+\texttt{plot\_ly(x=ran.dat.prop[,"L"], y=ran.dat.prop[,"T"], z=ran.dat.prop[,"R"])}
+
+\texttt{plot\_ly(x=ran.dat.DM[,"L"], y=ran.dat.DM[,"T"], z=ran.dat.DM[,"R"])}
+

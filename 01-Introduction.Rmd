@@ -1,16 +1,32 @@
 # Introduction {#intro}
 
+\hspace{2cm}\begin{minipage}[ct]{10cm}
+\parskip=5pt
+\parindent=5pt
+
+"What really is the point of trying to teach anything to anybody?"
+
+This question seemed to provoke a murmur of sympathetic approval from up and down the table.
+
+ Richard continued, "What I mean is that if you really want to understand something, the best way is to try and explain it to someone else. That forces you to sort it out in your mind. And the more slow and dim-witted your pupil, the more you have to break things down into more and more simple ideas. And that's really the essence of programming. By the time you've sorted out a complicated idea into little steps that even a stupid machine can deal with, you've learned something about it yourself. The teacher usually learns more than the pupils. Isn't that true?" [Richard MacDuff] \footnote{Douglas Adams, 1987 in \emph{Dirk Gently's Holistic Detection Agency},  William Heinemann Ltd, London}
+
+ \vspace{1cm}
+ Let us think the unthinkable, let us do the undoable, let us prepare to grapple with the ineffable itself, and see if we may not eff it after all. [Dirk Gently] \footnote{ibid}
+
+\end{minipage}
 
 This booklet is intended for use in teaching graduate student courses and conference workshops on using compositional data analysis methods to examine high throughput sequencing datasets. The approach taken here is largely intuitive and hands on. Formulas for basic methodologies are presented, but the intuitive reason for using them takes precedence. The methods presented here have been used for 16S rRNA gene sequencing, transcriptomics, metagenomics and in-vitro selection (selex) experiments.
 
-I begin with background and theory, and progress to practical examples. I hope you find this useful.
+The first section is background and theory using toy examples. The second section is application of what we have learned using practical examples. I hope you find this useful.
+
+
 
 ## Outline of the material
 
-- I begin with a brief overview of sequencing technologies, and describe how and why these instruments generate data that are constrained to a constant count.
+- I begin with a brief overview of sequencing technologies, an overview of the types of data we are likely to encounter, and describe how and why these instruments generate data that are constrained to a constant count.
+- I introduce sequencing as a stochastic process, explain why we need to estimate our technical variance and show how this can be done technical variance
 - I next semi-formally introduce compositional data, and show with examples the pathologies associated with this type of data.
 - I then introduce common data transforms and distances used in the high throughput sequencing literature, and demonstrate that none of the transforms affects the compositional nature of the data, and that in fact, many of the transforms affect the data in non-intuitive ways
-- I then introduce sequencing as a stochastic process, explain why we need to estimate our technical variance and show how this can be done technical variance
 - I begin the practical part with exploratory data analysis using the compositional biplot
 - I describe the properties of three types of plots to examine high dimensional data: Bland-Altman plots (MA plots), volcano plots, and effect plots
 - I describe compositionally appropriate methods to estimate differential abundance with an emphasis on ALDEx2 and to a lesser extent ANCOM
