@@ -1,0 +1,67 @@
+f <- read.table("/Users/ggloor/Documents/0_git/9545/R_section_data/filtered_table.txt", sep="\t", row.names=1, header=T)
+
+f <- f[,colSums(f) > 0 ]
+
+library(ALDEx2)
+
+effect.matrix <- matrix(data=NA, nrow = ncol(f), ncol = 7)
+ol.matrix <- matrix(data=NA, nrow = ncol(f), ncol = 7)
+t.matrix <- matrix(data=NA, nrow = ncol(f), ncol = 7)
+setA <- rep("SN", 48)
+setB <- rep("WT", 48)
+
+
+conds <- c(setA, setB)
+
+x.7 <- aldex.clr(t(f), conds=conds, mc.samples=128)
+	x.7t <- aldex.ttest(x.7, conds)
+
+for(i in 1:7){
+
+    x <- aldex.clr(t(f), conds=conds, mc.samples=2^i)
+	print(2^i)
+	x.e <- aldex.effect(x, conds)
+	x.t <- aldex.ttest(x, conds)
+	effect.matrix[,i] <- x.e$effect
+	ol.matrix[,i] <- x.e$overlap
+	t.matrix[,i] <- x.t$we.eBH
+
+	# tabulate the values
+	# bh.cor <- bh.cor + ( adj.cor / mc.instances )
+	# mean.p <- mean.p + cor.rho / mc.instances
+}
+
+colnames(effect.matrix) <- paste("r", 2^seq(1:7), sep="_")
+rownames(effect.matrix) <- colnames(f)
+
+ plot(2^seq(1:6),effect.matrix[1,7]-effect.matrix[1,1:6], log="x", type="l", ylim=c(-10, 10), col=rgb(0,0,0,0.1))
+
+ for(i in 2:ncol(f)){
+  if(effect.matrix[i,1] > 2) points(2^seq(1:6),effect.matrix[i,7] - effect.matrix[i,1:6],pch=19,col=rgb(1,0,0,0.2))
+  if(effect.matrix[i,1] <= 2) points(2^seq(1:6),effect.matrix[i,7] - effect.matrix[i,1:6], pch=19,col=rgb(0,0,0,0.1))
+  }
+  abline(h=1, col="blue", lty=2)
+  abline(h=-1, col="blue", lty=2)
+
+   plot(2^seq(1:6),ol.matrix[1,7]-ol.matrix[1,1:6], log="x", pch=19, ylim=c(-0.5, 0.5), col=rgb(0,0,0,0.1))
+
+ for(i in 2:1600){
+  if(ol.matrix[i,1] <0.01) points(2^seq(1:6),ol.matrix[i,7]-ol.matrix[i,1:6], pch=19,col=rgb(1,0,0,1))
+  if(ol.matrix[i,1] >=0.01) points(2^seq(1:6),ol.matrix[i,7]-ol.matrix[i,1:6], pch=19,col=rgb(0,0,0,0.1))
+  }
+  abline(h=2, col="blue", lty=2)
+
+ plot(2^seq(1:7),t.matrix[1,], ylim=c(1e-3, 1), log="xy", type="l", col=rgb(0,0,0,0.1))
+
+
+ for(i in 2:ncol(f)){
+  if(t.matrix[i,7] < 0.05) points(2^seq(1:7),t.matrix[i,] ,type="l",col=rgb(1,0,0,0.2))
+  if(t.matrix[i,1] < 0.05 & t.matrix[i,7] > 0.05) points(2^seq(1:7),t.matrix[i,], type="l",col=rgb(0,0,0,1))
+  }
+  abline(h=0.05, col="blue", lty=2)
+  abline(h=-1, col="blue", lty=2)
+
+length(which (t.matrix[,6] < 0.05 & t.matrix[,7] > 0.05) )
+length(which (t.matrix[,7] < 0.05) )
+
+length(which (x.7t$we.eBH < 0.05 & t.matrix[,7] > 0.05) )

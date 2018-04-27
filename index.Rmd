@@ -18,7 +18,18 @@ output:
         ]
 ---
 
-# About this document {#about}
+# Preface {-}
+![](figs/simplex.pdf)
+
+## Why this book exists {-}
+
+This is an attempt to put on (virtual) paper my thoughts on the use of compositional data analysis methods to examine high throughput DNA sequencing experiments. Primarily it is intended as a guide to graduate courses and as an aid when presenting workshops.
+
+## Structure of the book {-}
+
+The first half of the book is some theory and justifications. This is written assuming the reader is a graduate student in a biological or biomedical science and that the student has little background in statistics or bioinformatics.
+
+## Information and conventions {-}
 
 This document is an .Rmd document and can be found at:
 
@@ -26,19 +37,22 @@ github.com/ggloor/book
 
 The generation of this document requires `R` and an installation of \LaTeX to work properly. This document contains interspersed markdown and `R` code that may be compiled into a pdf document and supports the figures and assertions in the main article. `R` code is (almost always) exposed in the pdf document so that the interested reader can work through the example code themselves. Code that is not exposed is in the `chunk` directory.
 
-## Reproducing the analysis
+### Reproducing the analysis
 
 From an R command prompt you can compile this document into PDF if you have \LaTeX and pandoc installed:
 
 `bookdown::render_book("index.Rmd")` or you can open the file in RStudio and compile in that environment.
 
-## R packages required
+### R packages required
 
-We will need the following R packages, several functions are defined in a dedicated functions section.
+We will need the following R packages, and in addition several functions are defined in a dedicated functions section.
 
 1. knitr (CRAN)
 2. bookdown (CRAN)
 3. vegan (CRAN)
+4. ALDEx2 (Bioconductor)
+5. propr (CRAN)
+6. Ternary (CRAN)
 
 ```{r libs, results="hide", echo=F, message=F, error=F, warnings=F}
 library(knitr)
@@ -48,4 +62,8 @@ library(ALDEx2)
 source("chunk/functions.R")
 library(Ternary)
 tutorial_data <- "/Users/ggloor/Documents/0_git/Coda_microbiome_tutorial/data/"
+read_chunk("chunk/datasets.R")
 ```
+# About the author {-}
+
+Oh god I'm old and boring

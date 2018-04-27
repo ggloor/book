@@ -1,9 +1,11 @@
 # Random sampling by sequencing {#random}
 
-In Chapter \ref{sequencing} we saw that DNA sequencing is not a counting operation but is instead a random sampling operation from a large pool, akin to sampling different colored balls from an urn that contains more balls than are sampled. A counting operation always allows the addition of 'one more observation'. In the context of DNA  sequencing this would equate to loading the samples onto an Illumina MiSeq chip to the optimal fragment density and then adding in 'one more fragment' repeatedly until the number of fragments loaded exceed the capacity of the chip. The sequencing reaction will fail when the number of frangments exceeds the chip capacity. Stated bluntly, one cannot purchase an Illumina MiSeq run and expect to receive data equivalent to an Illumina NextSeq or HiSeq run. This self-evident fact is completely overlooked in the literature.
+A counting operation always allows the addition of 'one more observation', and is one of fundamental operations that integer mathematics and statistics depend upon [@number]. In the context of DNA  sequencing this would equate to loading the samples onto an Illumina MiSeq chip to the optimal fragment density and then adding in 'one more fragment' repeatedly until the number of fragments loaded was equivalent to that on a much higher capacity chip (say the NextSeq). However, this is not possible since at some point the total number of fragments would exceed the capacity of the chip and the sequencing reaction will fail. Stated bluntly, one cannot purchase an Illumina MiSeq run and expect to receive data equivalent to an Illumina NextSeq or HiSeq run. This self-evident fact is completely overlooked in the literature.
+
+In Chapter \ref{sequencing} we saw that DNA sequencing is not a counting operation but is instead a random sampling operation with a fixed sum from a large pool of molecules. This is akin to sampling different colored balls from an urn that contains more balls than are sampled and stopping after a fixed number of balls are drawn.
+
 
 The random sampling can be direct at the level of sampling from the environment. In the case of genomics or metagenomics DNA is made directly from the sample. Sampling can be indirect in the case of RNA-seq where RNA molecules are sampled after they have been converted to DNA via reverse transcription. Note that an environment may not be uniform. For example, it has been observed that different microbial compositions are observed when collecting stool samples if a sample is taken from the interior or exterior of the stool [@Gorzelak:2015aa]. Sampling can also be indirect in the case of tag-sequencing or single cell sequencing. In tag-sequencing, most typically applied to 16S rRNA gene sequencing, a small defined region is amplified by the PCR, and the amplimer size is usually compatible with the sequencing instrument. In single cell sequencing the molecules from a single cell are fragmented and amplified as a mixture.
-
 
 Fragment sampling occurs because as noted above the fragments actually sequenced are a random sample of the fragments that are in the sequencing library. There are always more fragments in the library than can be accommodated on the instrument, and there are almost always more molecules in the environment than can be accommodated in the library. The sole exception to this rule would be when sequencing is used to investigate low biomass environments---however in this case the library protocols always have an amplification step that increases the number of fragments above the number that can be accommodated on the instrument. The fragment sampling occurs by a multivariate Poisson process [@fernandes:2013] as outlined below. After the DNA is made and fragmented, an aliquot of the population of DNA fragments are used to make a \emph{sequencing library} by attaching standard sequences that permit the DNA fragments to be bound to the solid phase of the sequencing chip that is particular to a given platform. Fragmentation is not typically employed in tag-sequencing since the amplified DNA fragments are typically small.
 
@@ -13,8 +15,44 @@ If the number of DNA fragments sequenced has an arbitrary upper bound determined
 
 Looking back at the GregSeq example in Figure \ref{RALT}, if we always recover 16 entities, and all of them are ladybugs, we cannot know if the sample was from a high or low density of ladybugs. All we can say is that we only recovered ladybugs. Therefore, the only information available is the \emph{relative} proportion of individual fragments in the library, which is assumed to approximate the relative proportion of fragments in the  DNA sample from the environment. We will revisit this issue when we discuss normalizations in common use.
 
+## Probabilistic sampling
 
-## Formal description
+It is simple to demonstrate that the DNA sequencing results obtained is a probabilistic and not a deterministic sampling process. In the former case we should expect some variation due to the act of sampling, in the latter case we expect the same result every time. Fortunately there is a good system to test this by examining reads from adjacent lanes in the same flow cell. For this analysis we use a well-controlled dataset of \emph{Saccharomyces cerevisia} RNA-seq experiment carried out with seven technical replicates per sample [Gierlinski:2015aa,@Schurch:2016aa]. We take the dataset, which has 7 technical replicates of each biological sample and compare a reference technical replicate with the other replicates. We will examine only the first set of technical replicates, but the concepts hold for the other 95 technical replicates in the dataset and for other similar datasets, e.g. in [@fernandes:2013].
+
+Figure \ref{fig:expected} shows that the observation of a count in one technical replicate is a good, but not perfect predictor of the count in a second technical replicate. We observe some random variation around the line of equality. There is also a systematic difference between the expected value near the low count margin and the expected value at higher counts. At the low count margin the expected value across multiple technical replicates is greater than the count observed in the reference replicate. The ratio panel on the right shows that this holds true until the reference replicate has reached 10-15 counts---this depends upon the read depth. Conversely, the reference and the expected value are  close matches at higher counts, although there appears to be a slight tendency for the reference to over-estimate the expected value. Thus the low count margin is over-dispersed, leading to the usage of negative binomial methods, or zero inflated Gaussian methods to model the data. However, we have found that a Dirichlet distribution with a uniform prior of 0.5 is a good fit to the data [@fernandes:2013; @gloorAJS:2016].
+
+```{r expected, echo=F, fig.height=4, fig.width=7, fig.cap="One technical replicate was taken as the reference, and for all genes of a given count on the x-axis, the mean (expected) value of the genes in the other six replicates were determined. The results for the genes with a count in the reference replicate up to 50 are shown in the left panel. The red line shows equality between the reference replicate and all others. The right side panel shows the ratio between the observed value in the reference replicate after the addition of a prior expected value of 0.5, and the expected values.  "}
+d <- as.matrix(read.table(
+   "/Users/ggloor/Documents/0_git/Coda_microbiome_tutorial/data/countfinal2.tsv",
+    header=T,row.names=1, check.names=F))
+d <- d[,1:7] # use only the first set of replicates
+
+d.n0 <- d[rowSums(d) > 0,] # remove features with 0 in all replicates
+
+output <- matrix(data=NA, nrow=51, ncol=6)
+
+for(j in 0:50){
+    for(i in 1:6){
+      output[j+1, i ] <- (mean(d.n0[,i][d.n0[,7] == j]) /
+          (sum(d.n0[,i])/sum(d.n0[,7])))
+    }
+}
+
+obs <- seq(0,50, by=1)
+rownames(output) = obs
+
+par(mfrow=c(1,2))
+boxplot(t(output), xlab="Reference count", ylab="E(Replicate count)")
+abline(h=seq(0,50, by=5), col=rgb(0,0,0,0.3), lty=2, lwd=2)
+abline(v=seq(1,51, by=5), col=rgb(0,0,0,0.3), lty=2, lwd=2)
+abline(-1,1, col="red", lty=2)
+boxplot(t(output /  (obs+0.5)), xlab="Reference count",
+    ylab="E(Replicate count)/ (Rep1 + 0.5)")
+abline(h=1, , col="red", lty=2)
+```
+
+
+## A Formal Description
 
 ### Definitions and notation
 
@@ -27,9 +65,9 @@ Looking back at the GregSeq example in Figure \ref{RALT}, if we always recover 1
 7. sample geometric means $g_i= ( \prod_{1}^{D} s_i )^{1/D}$
 8. random instances of the data $k=1 \ldots m$
 
-It is worth recalling that essentially all HTS data come from underpowered experimental designs, in the sense that there are more features than there are samples: indeed it is common, because of cost to conduct and analyze only pilot-scale experiments. Therefore, we collect far fewer samples than required for true statistical power. Thus, the strength of evidence for statistical inference must be weak. Paradoxically, the features that are identified as differentially abundant must \emph{appear to be very different}, much more so than the actual data support  [@Colquhoun:2014aa;@Halsey:2015aa]. The combination of small sample sizes, large numbers of variables and the mis-use of the null-hypothesis testing framework are a deadly combination [@forking:2013].
+It is worth recalling that essentially all HTS data come from underpowered experimental designs, in the sense that there are more features than there are samples. Thus, the strength of evidence for statistical inference must be weak [@Halsey:2015aa]. Paradoxically, the features that are identified as differentially abundant must \emph{appear to be very different}, much more so than the actual data support  [@Colquhoun:2014aa;@Halsey:2015aa]. The combination of small sample sizes, large numbers of variables and the mis-use of the null-hypothesis testing framework are a deadly combination [@forking:2013].
 
-Any results can only be validated by independent replication, meta-analysis assuming all experiments are published, or by an orthogonal method [@Cumming:2008aa]. All of which are rare in both the transcriptome and microbiome fields.
+Any results can only be validated by independent replication, meta-analysis assuming all experiments are published, or by an orthogonal method [@Cumming:2008aa]. All of which are rare in the transcriptome, metagenome, and microbiome fields.
 
 When estimating differential abundance it is important to properly estimate the dispersion, $\tau$, of the $j^{th}$ feature for all samples; dispersion of a feature can be represented by the following simple model:
 
@@ -39,28 +77,28 @@ When estimating differential abundance it is important to properly estimate the 
 \end{equation}
 
 
-where $\nu$ represents the underlying biological variation and $\epsilon$ represents the stochastic error  from all the steps involved in the collection, preparation, and sequencing of the dataset outlined above. All these steps involve some kind of random sampling from a larger pool of molecules, and so can be approximated by a model of drawing different colors of balls from an urn that contains many more balls than are drawn. Under this assumption, repeated sampling of each feature would be expected to be distributed according to a Poisson distribution. Given that the samples are multivariate, we expect a multivariate Poisson sampling process to be appropriate, and this is equivalent to sampling from a Dirichlet distribution with a uniform prior [@fernandes:2013].
+where $\nu$ represents the underlying biological variation and $\epsilon$ represents the stochastic error from all the steps involved in the collection, preparation, and sequencing of the dataset outlined above. For a given experiment, we \emph{only} have the biological variation available from the biological samples themselves. There is no principled way that additional biological samples can be imputed and so $\nu$ is fixed by the sample size.
 
-The majority of extant analysis tools utilize point estimates of both parameters and there are several underlying similarities in these models. First, it is generally assumed that  $\epsilon$ is small relative to $\nu$. Second, it is assumed that there is some underlying similarity in the distribution of $\nu$ and $\epsilon$  for all features in all samples at a given relative abundance level. That is, if the $n$ features were ordered by abundance, that the expected value of $\nu_j$ would be  approximately
+However, all steps in the collection and sequencing involve random sampling from a larger pool of molecules, and can be approximated by a model of drawing different colors of balls from an urn that contains many more balls than are drawn. Under this assumption, repeated sampling of each feature would be expected to be distributed according to a Poisson distribution. Given that the samples are multivariate, we expect a multivariate Poisson sampling process to be appropriate, and this is equivalent to sampling from a Dirichlet distribution with a uniform prior [@Jaynes:2003; @fernandes:2013]. Thus, while $\nu$ is fixed by the sample size, in principle and in practice, we can infer $\epsilon$. Under this analytic process we are able to identify those features that have a biological difference that is robust to simple random sampling as outlined below.
+
+The majority of extant analysis tools utilize point estimates of both parameters and there are several underlying similarities in the models used. First, it is generally assumed that  $\epsilon$ is small relative to $\nu$. Second, it is assumed that there is some underlying similarity in the distribution of $\nu$ and $\epsilon$  for all features in all samples at a given relative abundance level. That is, if the $n$ features were ordered by abundance, that the expected value of $\nu_j$ would be  approximately
 
 \begin{equation}
 \sum \nu_{j-m} \ldots \nu_{j+m} / 2m
 \end{equation}
 
 
-where \textit{m} is some small offset in the abundance index. Similar logic applies to estimating the expected value of $\epsilon$, but many tools offer  more complex additional models to estimate these parameters for troublesome data. Third, the data are observed to be over-dispersed; that is, the data are observed to have a greater variance than expected from Poisson sampling alone.
+where \textit{m} is some small offset in the abundance index. Similar logic applies to estimating the expected value of $\epsilon$, but many tools offer  more complex additional models to estimate these parameters for troublesome data. Third, the data are observed to be over-dispersed; that is, the data are observed to have a greater variance than expected from Poisson sampling alone. As we saw in Figure \ref{fig:expected} see random sampling alone can account for the apparent 'overdispersion' at the low count margin.
 
-The overdispersion has led many tools to model the dispersion using a negative-binomial model, where the dispersion can be greater than the mean. The negative-binomial model is very attractive and widely used in both transcriptome and microbiome studies [@Gierlinski:2015aa;@McMurdie:2014a;@Kvam:2012;@Robinson:2010]. Fortunately negative binomial based models work well when the samples are collected from environments near the constrained end of the spectrum. Unfortunately, these models do not fare as well at the un-constrained end of the spectrum [@gloorAJS:2016;@fernandes:2014;@macklaim:2013;@fernandes:2013], and even worse, tools based on these models rarely fail gracefully with a helpful error.
+The low count overdispersion has led many tools to model the dispersion using a negative-binomial model, where the dispersion can be greater than the mean. The negative-binomial model is very attractive and widely used in both transcriptome and microbiome studies [@Gierlinski:2015aa;@McMurdie:2014a;@Kvam:2012;@Robinson:2010]. Fortunately negative binomial based models work well when the samples are collected from environments near the constrained end of the spectrum. Unfortunately, these models do not fare as well at the un-constrained end of the spectrum [@gloorAJS:2016;@fernandes:2014;@macklaim:2013;@fernandes:2013], and even worse, tools based on these models rarely fail gracefully with a helpful error.
 
-
-So why are sequence count data over-dispersed? That there  is overdispersion is noted, why is rarely discussed. I suggest that the overdispersion is a consequence of the sequence constraint, and I will revisit in greater detail when we introduce compositional data in Chapter \ref{CoDa}. However, as shown in Figure \ref{poisson}, the variance can be measured in different ways.
 
 When absolute  variance is measured and plotted vs. sample count, the variance approximates the count as shown by the dotted grey line of equivalence. This is what is expected from a multivariate Poisson process. However, as we shall see in Chapter \ref{CoDa}, actual variance is usually somewhat greater than the mean in real datasets.
 
-When the variance of the ratio of the random samples to the actual data is plotted vs. the sample count the relationship between variance and sample count is exactly reversed. Here the variance is greatest at the low count margin and least at the high count margin. We will return to this point in Chapter \ref{CoDa}, but at this point, the reader needs to know that HTS data are \emph{relative and ratio} data by construction.
+When the variance of the ratio of the random samples to the actual data is plotted vs. the sample count the relationship between variance and sample count is exactly reversed. Here the relative variance is greatest at the low count margin and least at the high count margin. We will return to this point in Chapter \ref{CoDa}, but at this point, the reader needs to know that HTS data are \emph{relative and ratio} data by construction.
 
 
-```{r poisson, echo=TRUE, fig.width=6.5, fig.height=4, fig.cap="Variance in constrained data is not what we expect. Numbers between 1 and 1000 were generated (the sample) and converted to 50 random instances using a multivariate Poisson process by sampling from the Dirichlet distribution (the instances).  The absolute variance of 50 random instances was determined and plotted as the absolute variance of the instances vs. the sample count value. The data was transformed by converting each count to the ratio of the instance count to the sample count (relative value) and the variance of these relative values were plotted. The relative variance is greatest at the low count margin and smallest at the high count margin as is observed for actual sequencing data [@fernandes:2013;@gloorAJS].   "}
+```{r poisson, echo=TRUE, fig.width=6.5, fig.height=4, fig.cap="Variance in constrained data is not what we expect. Numbers between 1 and 1000 were generated (the sample) and converted to 50 random instances using a multivariate Poisson process by sampling from the Dirichlet distribution (the instances).  The absolute variance of 50 random instances was determined and plotted as the absolute variance of the instances vs. the sample count value. The data was transformed by converting each count to the ratio of the instance count to the sample count (relative value) and the variance of these relative values were plotted. The relative variance is greatest at the low count margin and smallest at the high count margin as is observed for actual sequencing data [@fernandes:2013;@gloorAJS:2016].   "}
 n.sam <- 50 # samples
 max.num <- 100000 # max value
 # semi-random vector

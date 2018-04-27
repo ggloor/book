@@ -1,3 +1,4 @@
- rm _main.Rmd
-Rscript -e 'bookdown::render_book("index.Rmd")'
+rm _main.Rmd
+
+Rscript --quiet -e  'bookdown::render_book("index.Rmd")'
 
