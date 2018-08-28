@@ -1,6 +1,8 @@
 # book on Compositional Data Analysis of High Throughput Sequencing Datasets
 
-This is a rough draft of a book that is intended to gather as much as I know on this topic. It will be used in graduate courses and workshops
+This is a rough draft of a book that is intended to gather as much as I know on this topic. It will be used in graduate courses and workshops. 
+
+The actual .pdf is in book/main.pdf
 
 There is much to be done, including code-checking and polishing. 
 
