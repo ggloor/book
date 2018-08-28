@@ -59,10 +59,17 @@ library(knitr)
 library(bookdown)
 library(vegan)
 library(ALDEx2)
+library(zCompositions)
+library(CoDaSeq)
 source("chunk/functions.R")
 library(Ternary)
 tutorial_data <- "/Users/ggloor/Documents/0_git/Coda_microbiome_tutorial/data/"
 read_chunk("chunk/datasets.R")
+library(ppclust)
+library(factoextra)
+library(cluster)
+library(fclust)
+
 ```
 # About the author {-}
 

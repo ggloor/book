@@ -37,16 +37,16 @@ While a compositional biplot can contain much information [@Ait1983; @aitchison2
 
  2. The arrows (or rays) for each feature are different lengths because they are a projection (shadow) of an 8-dimensional space onto two dimensions. Thus, the obviously shorter arrows (E, H, B, C) are projecting into other dimensions; for the sake of simplicity, assume they are projecting above or below the plane of the Figure \ref{fig:biplot}. The total length of each arrow (the variance of each feature) will be the same in this example if all dimensions were measured.
 
-3. The angle between the arrows for each feature is indicative of their Pearson's correlation, just as it is in a traditional biplot, with a smaller angle implying a greater correlation. By this measure correlated sets of features could include features G and I, or could include features B,C and D. However, correlation in compositional data is not enough because we are measuring the ratios between features, not their absolute values [@aitchison2002biplots; @Lovell:2015; Erb134536].
+3. The angle between the arrows for each feature is indicative of their Pearson's correlation, just as it is in a traditional biplot, with a smaller angle implying a greater correlation. By this measure correlated sets of features could include features G and I, or could include features B,C and D. However, correlation in compositional data is not enough because we are measuring the ratios between features, not their absolute values [@aitchison2002biplots; @Lovell:2015; @Erb134536].
 
-4. Features represented by any two arrows that are not nearly co-incident indicate pairs of features that are likely uncorrelated. Note that in a compositional biplot, features represented by arrows pointing in opposite directions \emph{may or may not} indicate anti-correlated features as shown in Figure \ref{fig:scatters} for the A:C pair, which is negatively correlated by design, and the G:F pair which appears to be negatively correlated but is actually not correlated at all. It is dangerous to infer negative correlation in compositional data because there are many apparent sources.
-
-5. Any two arrows with equal lengths (two features with the same relative standard deviation) will have a constant ratio relationship; that is, $F_1 = F_2 * C$, where the two features are related by a common multiplicative constant $C$. We can see this clearly for the B,C pair, which have the same length but differ by a factor of about 5000 in absolute abundance while keeping their relative standard deviation the same.
-
-6. Any two arrows with dissimilar lengths that have a small angle between them but a different length are related by an exponential relationship, and will be correlated but will not be in a constant ratio as shown in Figure \ref{fig:scatters}.
+4. A line drawn between the tips of the arrows for any set of features is called a link. Links that pass through more than one feature are permitted and do not change the interpretation. Short links indicate possible compositional association, long links indicate no association.
 
 
+5. Features represented by any two non co-incident arrows indicate pairs of features that are likely uncorrelated since they have a long link. Note that in a compositional biplot, features represented by arrows pointing in opposite directions \emph{may or may not} indicate anti-correlated features as shown in Figure \ref{fig:scatters} for the A:C pair, which is negatively correlated by design, and the G:F pair which appears to be negatively correlated but is actually not correlated at all. Therefore, it is dangerous to infer negative correlation in compositional data because there are many apparent sources.
 
+6. Any two arrows with equal lengths (two features with the same relative standard deviation) will have a constant ratio relationship if their direction is similar because they will be found to have a short link; that is, $F_1 = F_2 * C$, where the two features are related by a common multiplicative constant $C$. We can see this clearly for the B,C pair, which have the same length but differ by a factor of about 5000 in absolute abundance while keeping their relative standard deviation the same.
+
+6. Any two arrows with dissimilar lengths that have a small angle between them but a different length are related by an exponential relationship, and will be correlated but will not be in a constant ratio as shown in Figure \ref{fig:scatters}. This can be seen because they will have a long link if their variance is very different.
 
 ```{r biplot, echo=FALSE, results='show', fig.width=8, fig.height=8, message=FALSE,fig.cap="Compositional biplot of the features A-I.  From this we can see that the absolute abundance is not represented in the biplot."}
 
@@ -64,7 +64,7 @@ biplot(a_i.pcx, var.axes=TRUE, scale=0,
 Figure \ref{fig:scatters} shows the relationships between pairs of interest in the compositional biplot. The top left plot shows that features A and B are indeed negatively correlated in the dataset as designed. The top right plot shows that it is dangerous to infer negative correlation in compositional data as the F:G pair also appears to be negatively correlated but in fact are not correlated at all.
 
 
-When examining correlation in these datasets, we are most interested in finding those features that have a near constant variance ratio. In the context of a scatter plot of clr values this shows as pairs where the correlation is strong, and the slope of the correlation is near unity. The bottom left panel shows the plof of the B:C pair, which has a correlation of 0.093, and a slope of best fit of 0.92, close to 1. In contrast, the B:D pair has an even higher correlation of 0.99, but the slope of best fit is 0.58, and is clearly not close to 1. Thus, in this dataset only the B:C pair is likely to be compositionally associated.
+When examining correlation in these datasets, we are most interested in finding those features that have a near constant variance ratio. In the context of a scatter plot of clr values this shows as pairs where the correlation is strong, and the slope of the correlation is near unity. The bottom left panel shows the plot of the B:C pair, which has a correlation of 0.093, and a slope of best fit of 0.92, close to 1. In contrast, the B:D pair has an even higher correlation of 0.99, but the slope of best fit is 0.58, and is clearly not close to 1. Thus, in this dataset only the B:C pair is likely to be compositionally associated.
 
 ```{r scatters, echo=FALSE,, results='show', fig.width=8, fig.height=8, message=FALSE,fig.cap="Counts were generated from a random normal distribution for 9 features labeled A-I. Thirty samples were generated, and  features A,B,C and D were differentially abundant in the first twenty and last 10 samples. The others were of widely different abundances, but with random change between samples. Feature C is a randomly perturbed feature B, and feature D is a feature B powered by a random range between 1.4-1.5. Feature B is plotted vs features C and D as both counts and as centre log-ratio transformed values."}
 
@@ -86,70 +86,57 @@ abline(-1.253, 1, lty=2, col="red")
 
 ```
 
+## Compositions are relatively stable to subsetting
 
+We have seen that any of the count-normalization data transformations simply rescale the proportional data, and that a log-ratio transformation is thus more appropriate for compositional data. The effect of the difference in robustness of the interpretation of the data can be appreciated by the demonstration in Figure \ref{fig:clrprop}, where we compare the compositional biplot of all features, and the remainder after dropping  feature H, which is the third most abundant feature. Note that the effect of dropping feature H from the composition is minimal. The relationships between the remaining features and samples are nearly unchanged since feature H was not contributing to the split between the sample groups.
 
+When examining hight throughput datasets, it is common to have thousands of features or more where the majority of the features contribute little if anything to the dataset. One common tactic to simplify such complex compositional datasets is to remove those features that contribute little to the total variance of the dataset. This will be demonstrated in the practical chapters that follow where we examine real datasets.
 
-```{r, echo=FALSE, results='show', fig.width=8, fig.height=8, warning=FALSE, message=FALSE,fig.cap="The advantage of compositions is that the results are largely invariant to subsetting. That is, we get essentially the same answer with all (A-H), and with a subset of the data (A-G). We also see that in these data, the variance of the clr transformed values is much more informative than the absolute, or proportional values, and better represents the known structure of the data. "}
+When analyzing real datasets with compositional biplots, it is useful to subset the features in the data in different ways and examine if the overall separation between groups changes. Common subsetting choices include increasing or decreasing the proportional threshold that a feature must achieve, minimum count or average count levels of a feature, or contribution of the feature to total variance.  If subsetting does not change the conclusions, then one can be sure that the arbitrary choices in data processing have little or no effect on the overall conclusions. However, if subsetting does change the separation between groups, or introduce new groupings, then one knows that the conclusions are not robust to arbitrary choices, and are not to be trusted. An example of such subsetting to show stability can be found in the supplementary information for Bian et al. [-@bian:2017].
 
-a_i <- cbind(A,B,C,D,E,F,G,H)
-a_i.prop <- t(apply(a_i, 1, function(x){x/sum(x)}))
-a_i.clr <- t(apply(a_i.prop, 1, function(x){log(x) - mean(log(x))}))
+```{r clrprop, echo=FALSE, results='show', fig.width=8, fig.height=5, warning=FALSE, message=FALSE,fig.cap="Compositions are largely invariant to (rational) subsetting. That is, we get essentially the same answer with all (A-I), and with a subset of the data (-H). Note that feature H has been removed on the right, but the overall conclusions drawn will be similar. In particular, the separation between groups is unchanged and the relationships between those features that remain is nearly identical."}
+
 a_i.pcx <- prcomp(a_i.clr)
-a_i.p.pcx <- prcomp(a_i.prop)
-a_i.c.pcx <- prcomp(a_i)
+a_i.p.pcx <- prcomp(a_i.prop, scale=TRUE)
 
-a_g <- cbind(A,B,C,D,E,F,G)
-a_g.prop <- t(apply(a_g, 1, function(x){x/sum(x)}))
-a_g.clr <- t(apply(a_g.prop, 1, function(x){log(x) - mean(log(x))}))
 a_g.pcx <- prcomp(a_g.clr)
-a_g.p.pcx <- prcomp(a_g.prop)
-a_g.c.pcx <- prcomp(a_g)
+a_g.p.pcx <- prcomp(a_g.prop, scale=TRUE)
 
-a_i.z <- apply(a_i, 2, function(x){ (x-mean(x))/sqrt(var(x)) })
-a_i.z.prop <- apply(a_i.prop, 2, function(x){ (x-mean(x))/sqrt(var(x)) })
-a_i.z.prop.pcx <- prcomp(a_i.z.prop)
-a_i.z.pcx <- prcomp(a_i.z)
-
-a_g.z <- apply(a_g, 2, function(x){ (x-mean(x))/sqrt(var(x)) })
-a_g.z.prop <- apply(a_g.prop, 2, function(x){ (x-mean(x))/sqrt(var(x)) })
-a_g.z.prop.pcx <- prcomp(a_g.z.prop)
-a_g.z.pcx <- prcomp(a_g.z)
-
-par(mfrow=c(2,3))
-#biplot(a_i.pcx, var.axes=TRUE, scale=0) # form
-biplot(a_i.pcx, var.axes=TRUE, scale=0,
+par(mfrow=c(1,2))
+#biplot(a_i.pcx, var.axes=TRUE, scale=1) # form
+biplot(a_i.pcx, var.axes=TRUE, scale=1,
     xlab=paste("PC1", round(a_i.pcx$sdev[1]^2 / sum(a_i.pcx$sdev^2),3), sep=": "),
     ylab=paste("PC2", round(a_i.pcx$sdev[2]^2 / sum(a_i.pcx$sdev^2),3), sep=": ")
-    , main="A-H clr"
+    , main="all clr"
 ) # covariance
 
-biplot(a_i.p.pcx, var.axes=TRUE, scale=0,
-    xlab=paste("PC1", round(a_i.p.pcx$sdev[1]^2 / sum(a_i.p.pcx$sdev^2),3), sep=": "),
-    ylab=paste("PC2", round(a_i.p.pcx$sdev[2]^2 / sum(a_i.p.pcx$sdev^2),3), sep=": ")
-    , main="A-H prop"
-) # covariance
+#biplot(a_i.p.pcx, var.axes=TRUE, scale=1,
+#    xlab=paste("PC1", round(a_i.p.pcx$sdev[1]^2 / sum(a_i.p.pcx$sdev^2),3), sep=": "),
+#    ylab=paste("PC2", round(a_i.p.pcx$sdev[2]^2 / sum(a_i.p.pcx$sdev^2),3), sep=": ")
+#    , main="all prop"
+#) # covariance
 
-biplot(a_i.c.pcx, var.axes=TRUE, scale=0,
-    xlab=paste("PC1", round(a_i.c.pcx$sdev[1]^2 / sum(a_i.c.pcx$sdev^2),3), sep=": "),
-    ylab=paste("PC2", round(a_i.c.pcx$sdev[2]^2 / sum(a_i.c.pcx$sdev^2),3), sep=": ")
-    , main="A-H count"
-) # covariance
-
-biplot(a_g.pcx, var.axes=TRUE, scale=0,
+biplot(a_g.pcx, var.axes=TRUE, scale=1,
     xlab=paste("PC1", round(a_g.pcx$sdev[1]^2 / sum(a_g.pcx$sdev^2),3), sep=": "),
     ylab=paste("PC2", round(a_g.pcx$sdev[2]^2 / sum(a_g.pcx$sdev^2),3), sep=": ")
-    , main="A-G clr"
+    , main="-H clr"
 ) # covariance
 
-biplot(a_g.p.pcx, var.axes=TRUE, scale=0,
-    xlab=paste("PC1", round(a_g.p.pcx$sdev[1]^2 / sum(a_g.p.pcx$sdev^2),3), sep=": "),
-    ylab=paste("PC2", round(a_g.p.pcx$sdev[2]^2 / sum(a_g.p.pcx$sdev^2),3), sep=": ")
-    , main="A-G prop"
-) # covariance
+#biplot(a_g.p.pcx, var.axes=TRUE, scale=1,
+#    xlab=paste("PC1", round(a_g.p.pcx$sdev[1]^2 / sum(a_g.p.pcx$sdev^2),3), sep=": "),
+#    ylab=paste("PC2", round(a_g.p.pcx$sdev[2]^2 / sum(a_g.p.pcx$sdev^2),3), sep=": ")
+#    , main="-H prop"
+#) # covariance
 
-biplot(a_g.c.pcx, var.axes=TRUE, scale=0,
-    xlab=paste("PC1", round(a_g.c.pcx$sdev[1]^2 / sum(a_g.c.pcx$sdev^2),3), sep=": "),
-    ylab=paste("PC2", round(a_g.c.pcx$sdev[2]^2 / sum(a_g.c.pcx$sdev^2),3), sep=": ")
-    , main="A-G count"
-) # covariance
+```
+
+```{r group,  echo=FALSE, results='show', fig.width=5, fig.height=4, warning=FALSE, message=FALSE,fig.cap="Samples from compositional data can easily be clustered, and fuzzy clustering is a good option for this [@fernandez:2012]. We are using the ppclust package for this [@fuzzy:2018]. Here the synthetic data are shown partitioned into two groups, that separate the two sets well. All samples cluster as expected except for sample 27, which is grouped incorrectly."}
+
+res.fcm <- fcm(a_i.clr, centers=2)
+
+# stand=TRUE will standardize the variance
+res.fcm2 <- ppclust2(res.fcm, "kmeans")
+factoextra::fviz_cluster(res.fcm2, data = a_i.clr,
+    ellipse.type = "norm", geom=c("point", "text"), pointsize=2, labelsize=10,
+    palette = "jco", repel = TRUE)
 ```

@@ -60,3 +60,7 @@ a_i.prop <- t(apply(a_i, 1, function(x){x/sum(x)}))
 # clr transform
 a_i.clr <- t(apply(a_i.prop, 1, function(x){log(x) - mean(log(x))}))
 
+# leave out feature H
+a_g <- cbind(A,B,C,D,E,F,G,I)
+a_g.prop <- t(apply(a_g, 1, function(x){x/sum(x)}))
+a_g.clr <- t(apply(a_g.prop, 1, function(x){log(x) - mean(log(x))}))

@@ -1,0 +1,262 @@
+# Analyzing a yeast transcriptome dataset
+
+\hspace{2cm}\begin{minipage}[ct]{10cm}
+\parskip=5pt
+\parindent=5pt
+This example was first presented as part of the Biochemistry 9545 courses offered in 2016 and 2017, and at the CoDa microbiome tutorial in Barcelona, Spain in April 2018 at the NGS'18 conference.  It has been modified for clarity and completeness for this book.
+\end{minipage}
+\vspace{1cm}
+
+OK, enough pontificating, lets finally look at a real RNA-seq dataset. I would not blame the reader if they started here in the book since it is the first real dataset we look at, but I do expect that the reader will have internalized the prior chapters. We will use as an example a \emph{Saccharomyces cerevisia} (yeast) transcriptome dataset [@Schurch:2016aa;@Gierlinski:2015aa] containing 96 samples, 48 each from wt and SNF2 knockout strain.  I am using this dataset because it is in many ways ideal; there are a large number of samples, the data are from a completely sequenced model organism, the data are not particularly sparse, and it is a very simple experiment.
+
+In any datase, the compositional biplot is the first exploratory data analysis tool that should be used. It shows, in one plot, the essence of your results. Do the samples separate into groups? which features are driving this separation? what features are irrelevant to the analysis? Does my data contain presumptive outliers?
+
+Compositional biplots of real data appear to be complex and intimidating because of the number of samples and features, but with a little patience and practice they are easily interpretable [@aitchison2002biplots]. They are based on the variance of the ratios of the parts, and are substantially more informative that the commonly used PCoA plots that are driven largely by abundance [@Gorvitovskaia:2016aa].
+
+
+```{r yeast-biplot, echo=FALSE, results='as.is', fig.width=7, fig.height=7, error=FALSE, message=FALSE, warning=FALSE, fig.cap="The compositional biplot is the workhorse tool for CoDa. This plot summarizes the entire analysis in a qualitative manner. We can see that the two groups separate well, and that component 1 has substantially more variance than does componet 2, and we can explain this experiment as a simple two part comparison with the largest variance along the axis of the comparison; i.e., along PC1."}
+
+# read in the dataset
+d.agg <- read.table("/Users/ggloor/Documents/0_git/CoDa_microbiome_tutorial/data/barton_agg.tsv", sep="\t", header=T, row.names=1)
+
+# it is important to first filter to remove rows that are exclusively 0 values
+d.filt <- d.agg[rowSums(d.agg) > 0,]
+
+# we are using the Count Zero Multiplicative approach
+d.n0 <- cmultRepl(t(d.filt), method="CZM", label=0)
+
+# generate the centered log-ratio transformed data
+# samples by row
+d.clr <- apply(d.n0, 2, function(x) log(x) - mean(log(x)))
+
+# apply a singular value decomposition to the dataset
+# do not use princomp function in R!!
+pcx <- prcomp(t(d.clr))
+
+# get the labels for the first two components
+PC1 <- paste("PC1: ", round(pcx$sdev[1]^2/sum(pcx$sdev^2),3), sep="")
+PC2 <- paste("PC2: ", round(pcx$sdev[2]^2/sum(pcx$sdev^2),3), sep="")
+
+par(fig=c(0,1,0,1), new=TRUE)
+# generate a scree plot
+par(fig=c(0,0.8,0,1), new=TRUE)
+biplot(pcx, cex=c(0.6,0.6), col=c("black", rgb(1,0,0,0.2)), var.axes=F, scale=0,
+    xlab=PC1, ylab=PC2)
+abline(h=0, lty=2, lwd=2, col=rgb(0,0,0,0.3))
+abline(v=0, lty=2, lwd=2, col=rgb(0,0,0,0.3))
+
+par(fig=c(0.8,1,0,1), new=TRUE)
+plot(pcx, main="hist")
+
+```
+
+## Interpreting the yeast compositional biplot:
+
+The complexity of the data makes applying the rules for interpreting compositional biplots impractical. In particular, there are so many features that there are many apparent short links, and this dataset is too complex to identify links easily. However several things stand out on the plot in Fig \ref{fig:yeast-biplot}.
+
+1) The proportion of variance explained by the first two principle components is about 31%. This is not exceptional, however, examination of the scree plot in Fig \ref{fig:yeast-biplot}  shows that the first component contains substantially more information than expected at random.
+2) The data samples separate clearly into two natural groups, all labelled SNF* or WT*. This separation is reassuring since the experiment was a knockout of the SNF2 gene (a knockout is a complete removal of the gene from the genome).
+3) If we examine the genes, we see that the gene for SNF2, YOR290-C, is the single most variable feature in the dataset along component 1 and is at the right side just below the midline.
+4) Both the SNF* and WT* sample groups appear to consist of samples that group together, and samples that are outside the main body of the groups. We can apply an outlier test to determine which if any samples are further from the middle of their group than is reasonable.
+5) There are a large number of features with significant variation on component 2. These variation of these features is likely contributing to the outlier samples.
+
+## Finding outliers
+
+We can see that there are a number of samples that appear to be outlier samples. For example, should we include SNF2.6 ,which can be found at the top left in Figure \ref{fig:yeast-biplot}, in the analysis or not? One of the messages of the Barton papers [@Schurch:2016aa;@Gierlinski:2015aa] was that about 10% of samples, even carefully prepared samples such as these, can be outliers for unknown methodological reasons. I approach outliers by finding those samples that are further from the middle of the group dataset than expected. Outliers are defined as those samples that are further   from the middle than the median plus twice the interquartile range of the distances of all samples in the group.
+
+The outlier function is instantiated in the CoDaSeq R package, and the example is illustrated for the WT* group, but has been applied to both groups. The graphical intuition for how outliers are identified is shown in Figure \ref{fig:yeast-outlier}. We can see from the compositional biplot of only the WT* samples, that several of them are substantially further from the rest of the samples than might be expected if the samples had homogeneous compositions that differed only by biological and technical variation.
+
+We can use the principles of robust statistics to examine this. We expect that if the samples differ only by technical and biological variation then the distances between samples would be distributed approximately evenly around a midpoint. We can extract the samples distances from the midpoint and determine those that are greater than twice the interquartile range from the median distance and those that are within that range. A histogram of these distances can be plotted to observe if all samples excluded are egregiously different from the median (as all are here) or if the samples excluded are at or near the cut line. If the latter case is found there is not strong evidence for removing outlier samples, and this should not be performed.
+
+```{r yeast-outlier, message=FALSE, warning=FALSE, echo=FALSE, fig.height=4, fig.width=9, fig.cap="Identifying and removing outlier samples. The left panel shows the biplot of the WT* samples only. While the majority of the features are in a distinct ball showing little structure note that there is a set of features that projects towards the top-right of the biplot. These features are driving the separation of samples 21, 25, 28 from the rest, and less obviously 34 and 36. The right plot shows the proportion of total distance that each sample contributes to the total distance between all samples. Five samples are identified as contributing a distance that is greater than twice the interquartile range from the other samples and are excluded."}
+
+# get the outliers from each group. See codaSeq.outlier function
+# get WT indices
+WT <- grep("WT", rownames(d.agg))
+# subset
+WT.agg <- d.agg[WT,]
+
+# filter, samples by row
+wt.gt0 <- WT.agg[,colSums(WT.agg) > 0]
+
+# estimate 0 values (zCompositions)
+# samples by row
+wt.agg.n0 <- cmultRepl(wt.gt0, method="CZM", label=0)
+
+# clr transform
+wt.agg.n0.clr <- t(apply(wt.agg.n0, 1, function(x) log(x) - mean(log(x))))
+
+# SVD
+pcx.wt  <- prcomp(wt.agg.n0.clr)
+PC1.wt <- paste("PC1: ", round(pcx.wt$sdev[1]^2/sum(pcx.wt$sdev^2),3), sep="")
+PC2.wt <- paste("PC2: ", round(pcx.wt$sdev[2]^2/sum(pcx.wt$sdev^2),3), sep="")
+
+# plot
+par(mfrow=c(1,2))
+biplot(pcx.wt, var.axes=FALSE, scale=0,  xlab=PC1.wt, ylab=PC2.wt, cex=c(0.6,.05))
+
+# make a list of names to keep. found in $good
+WT.g <- codaSeq.outlier(wt.agg.n0.clr, plot.me=TRUE)
+
+SNF <- grep("SNF", rownames(d.agg))
+# subset
+SNF.agg <- d.agg[SNF,]
+
+# filter, samples by row
+SNF.gt0 <- SNF.agg[,colSums(SNF.agg) > 0]
+
+# estimate 0 values (zCompositions)
+# samples by row
+SNF.agg.n0 <- cmultRepl(SNF.gt0, method="CZM", label=0)
+
+# clr transform
+SNF.agg.n0.clr <- t(apply(SNF.agg.n0, 1, function(x) log(x) - mean(log(x))))
+
+# SVD
+pcx.SNF  <- prcomp(SNF.agg.n0.clr)
+
+# make a list of names to keep. found in $good
+SNF.g <- codaSeq.outlier(SNF.agg.n0.clr, plot.me=FALSE)
+```
+
+## Biplot of non-outlier and outlier samples separately
+
+It is important to check that the outlier samples are truly contributing noise or uncertainty to the system. One way we can do this is to examine  a biplot of only those samples that are non-outliers.
+
+The compositional biplot in Figure \ref{fig:yeast-good-data_pca} :Non-outliers now explains substantially more of the variance in the data along the major axis. Furthermore, YOR290-c the knockout feature is separated from the main set of features much more obviously, suggesting that we have a more informative rotation of the data. Interestingly, we can see that the SNF2 KO group is more homogeneous than is the WT group. Almost certainly this is because  the SNF2 group was clonal, and the WT group was likely grown from a frozen culture where genetic drift is known to occur.
+
+```{r yeast-good-data-pca, message=FALSE, warning=FALSE, echo=FALSE, fig.height=6, fig.width=14, fig.cap="Compositional biplot using only non-outlier samples or outlier samples. Note that both the samples and the features in the data now appear to be more homogeneous in the non-outlier samples. The two groups separate with about 50% more variance explained, and there are substantially fewer features that are obviously off the axis of the experiment. The outlier dataset appears to have little structure."}
+
+# make a dataset of only the non-outlier samples
+d.good <- rbind(d.agg[SNF.g$good,],d.agg[WT.g$good,])
+
+# filter
+#d.good.gt0 <- codaSeq.filter(d.good,  min.count=1, samples.by.row=TRUE)
+d.good.gt0 <- d.good[,colSums(d.good) > 0]
+
+# estimate 0 values (zCompositions)
+d.good.agg.n0 <- cmultRepl(d.good.gt0, method="CZM", label=0)
+
+# clr transform
+d.good.agg.n0.clr <- t(apply(d.good.agg.n0, 1, function(x) log(x) - mean(log(x))))
+
+# SVD
+pcx.good  <- prcomp(d.good.agg.n0.clr)
+mvar.good <- sum(pcx.good$sdev^2)
+# get the labels for the first two components
+PC1.g <- paste("PC1: ", round(pcx.good$sdev[1]^2/sum(pcx.good$sdev^2),3), sep="")
+PC2.g <- paste("PC2: ", round(pcx.good$sdev[2]^2/sum(pcx.good$sdev^2),3), sep="")
+
+# plot and save
+par(mfrow=c(1,2))
+biplot(pcx.good, var.axes=FALSE, scale=0, cex=c(1,.5),  xlab=PC1.g, ylab=PC2.g, main="Non-outliers")
+abline(h=0, lty=2, lwd=2, col=rgb(0,0,0,0.3))
+abline(v=0, lty=2, lwd=2, col=rgb(0,0,0,0.3))
+
+# make a dataset of only the non-outlier samples
+d.bad <- rbind(d.agg[SNF.g$bad,],d.agg[WT.g$bad,])
+
+# filter
+d.bad.gt0 <- d.bad[,colSums(d.bad) > 0]
+
+# estimate 0 values (zCompositions)
+d.bad.agg.n0 <- cmultRepl(d.bad.gt0, method="CZM", label=0)
+
+# clr transform
+d.bad.agg.n0.clr <- t(apply(d.bad.agg.n0, 1, function(x) log(x) - mean(log(x))))
+
+# SVD
+pcx.bad  <- prcomp(d.bad.agg.n0.clr)
+mvar.bad <- sum(pcx.bad$sdev^2)
+# get the labels for the first two components
+PC1.g <- paste("PC1: ", round(pcx.bad$sdev[1]^2/sum(pcx.bad$sdev^2),3), sep="")
+PC2.g <- paste("PC2: ", round(pcx.bad$sdev[2]^2/sum(pcx.bad$sdev^2),3), sep="")
+
+# plot and save
+biplot(pcx.bad, var.axes=FALSE, scale=0, cex=c(1,.5),  xlab=PC1.g, ylab=PC2.g, main="Outliers")
+abline(h=0, lty=2, lwd=2, col=rgb(0,0,0,0.3))
+abline(v=0, lty=2, lwd=2, col=rgb(0,0,0,0.3))
+
+```
+Conversly, we can also examine those samples that were deemed to be outliers. In Figure \ref{fig:yeast-good-data-pca}:Outliers we can see that the outlier samples have the axis of the experiment on PC2, which means that there problems in the dataset that led to these samples being outliers overwhelms the actual signal in the dataset. This confirms that these samples should be removed from the dataset as they are adding either noise, or some other systematic information to the dataset.
+
+\clearpage
+
+## Additional filtering does not change the conclusions
+
+We can do additional filtering. Examining the features we see that most contribute little, if anything, to the separation between the two groups. These can be easily identified and removed by filtering out low variance features.  CoDaSeq has a function to do this filtering removing those features with total variance in the dataset below the median variance. Note that we change the resolution, but that we recapitulate the dataset with only half or even a quarter of the features. We could do this iteratively as shown in the right hand panel of Figure \ref{fig:yeast-lowvar}. This strategy is a good one to remove nuisance features that confound the analysis of those features that are important for the separation. However, one must be careful that the removal of is just simplifying the data and that removal is not changing the interpretation of the data. As such whenever filtering is performed the original, unfiltered analysis should be included as a reference.
+
+```{r yeast-lowvar, message=FALSE, warning=FALSE, echo=FALSE, fig.cap='The left hand plot has the features with variance below the median removed, retaining only those features with total variance above the mean. The right hand plot has features with variance below the median of that dataset removed, resulting in the plot being generated with only the top quarter of variance retained.', fig.height=5, fig.width=12}
+
+
+var.clr <- apply(d.good.agg.n0.clr, 2, var)
+nms <- which(var.clr > median(var.clr)) #
+
+d.lv <- d.good[, names(nms)]
+# filter
+
+# estimate 0 values (zCompositions)
+d.lv.agg.n0 <- cmultRepl(d.lv, method="CZM", label=0)
+
+# clr transform
+d.lv.agg.n0.clr <- t(apply(d.lv.agg.n0, 1, function(x) log(x) - mean(log(x))))
+
+# do a second filtering
+var.clr2 <- apply(d.lv.agg.n0.clr, 2, var)
+nms2 <- which(var.clr2 > median(var.clr2)) #
+d.lv2 <- d.good[, names(nms2)]
+# filter
+
+# estimate 0 values (zCompositions)
+d.lv.agg.n02 <- cmultRepl(d.lv2, method="CZM", label=0)
+
+# clr transform
+d.lv.agg.n0.clr2 <- t(apply(d.lv.agg.n02, 1, function(x) log(x) - mean(log(x))))
+
+par(mfrow=c(1,2))
+# SVD
+pcx.lv  <- prcomp(d.lv.agg.n0.clr)
+mvar.lv <- sum(pcx.lv$sdev^2)
+PC1.lv <- paste("PC1: ", round(pcx.lv$sdev[1]^2/sum(pcx.lv$sdev^2),3), sep="")
+PC2.lv <- paste("PC2: ", round(pcx.lv$sdev[2]^2/sum(pcx.lv$sdev^2),3), sep="")
+
+pcx.lv2  <- prcomp(d.lv.agg.n0.clr2)
+mvar.lv2 <- sum(pcx.lv2$sdev^2)
+PC1.lv2 <- paste("PC1: ", round(pcx.lv2$sdev[1]^2/sum(pcx.lv2$sdev^2),3), sep="")
+PC2.lv2 <- paste("PC2: ", round(pcx.lv2$sdev[2]^2/sum(pcx.lv2$sdev^2),3), sep="")
+
+# plot and save
+biplot(pcx.lv, var.axes=FALSE, scale=0, cex=c(1,.5), col=c("black", rgb(1,0,0,0.1)), xlab=PC1.lv, ylab=PC2.lv)
+abline(h=0, lty=2, lwd=2, col=rgb(0,0,0,0.3))
+abline(v=0, lty=2, lwd=2, col=rgb(0,0,0,0.3))
+
+# plot and save
+biplot(pcx.lv2, var.axes=FALSE, scale=0, cex=c(1,.5), col=c("black", rgb(1,0,0,0.1)), xlab=PC1.lv2, ylab=PC2.lv2)
+abline(h=0, lty=2, lwd=2, col=rgb(0,0,0,0.3))
+abline(v=0, lty=2, lwd=2, col=rgb(0,0,0,0.3))
+
+```
+\clearpage
+
+## FUZZY CLUSTERING
+
+We can plot the samples according to their kmeans cluster membership. For this we are using the fuzzy clustering package ppclust [@fuzzy:2018]. There is a good introduction to fuzzy clustering in  [@fernandez:2012]. Essentially, we are using a probabilistic (or possibilistic) approach to determine the number of clusters, and the cluster memberships. The vignette for this approach is at: https://cran.r-project.org/web/packages/ppclust/vignettes/fcm.html. As noted in the workshop, we get two clusters if we choose centers=2 or =3, but the SNF2 and WT groups split if we choose centers=4.
+
+```{r yeast-fuzzy}
+library(ppclust)
+library(factoextra)
+library(cluster)
+library(fclust)
+
+
+res.fcm <- fcm(d.lv.agg.n0.clr, centers=2)
+#as.data.frame(res.fcm$u)
+#summary(res.fcm)
+
+res.fcm2 <- ppclust2(res.fcm, "kmeans")
+
+factoextra::fviz_cluster(res.fcm2, data = d.lv.agg.n0.clr,
+  ellipse.type = "norm", labelsize=10,  palette = "jco",
+  repel = TRUE)
+```
+############
