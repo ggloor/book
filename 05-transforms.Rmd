@@ -32,7 +32,7 @@ The `vegan` R package manual [@vegan:2017] has a very good description of many d
 Current practice is to examine the datasets using 'relative abundance' values, that is, the proportional abundance of the features either before or after normalization for read depth. This approach is equivalent to examining the input unconstrained data of the type seen in Figure \ref{fig:shape} in the relative abundance sample space in the bottom right panel of the figure after normalizing the total number of reads to be approximately constant. This approach will obviously lead to incorrect assumptions in at least some cases. For example, depending upon the steps chosen to compare, the blue feature, that has constant counts in the input, will be seen to either increase or decrease in abundance. Conversely, the black feature, that is always decreasing in abundance will be seen to be constant if comparing samples 1-8.
 
 
-```{r transformations, echo=FALSE,fig.width=6,fig.height=4.5,warning=F,message=F, fig.cap="The effect of ecological transformations on unconstrained high throughput sequencing datasets. Data generated as in Figure \\ref{fig:shape} were normalized to a (near) constant total number of reads,  converted to proportions, then transformed with five different approaches implemented in the vegan ecological analysis package. The 'Counts' panel shows the original data, the other panels begin with a 'v:' and indicate the vegan package transformation. The transformation in the MR panel is described below."}
+```{r transformations, echo=FALSE,fig.width=6,fig.height=4.5,warning=F,message=F, fig.cap="The effect of ecological transformations on unconstrained high throughput sequencing datasets. Data generated as in Figure \\ref{fig:shape} were normalized to a (near) constant total number of reads,  converted to proportions, then transformed with five different approaches implemented in the vegan ecological analysis package. The 'Counts' panel shows the original data, the other panels begin with a 'v:' and indicate the vegan package transformation. The transformation in the RLE panel is described below."}
 
 # first make the total count similar for all datasets because sequencing is constrained
 # a small random pseudocount is added so the log of 0 is never calculated
@@ -55,7 +55,7 @@ plot_c(m.dub.u, main="Counts", ylab="log10 count", log="y")
 plot_c(freq.m, main="v:Frequency", ylab="log10 value", log="y")
 plot_c(hel.m, main="v:Hellinger", ylab="log10 value", log="y")
 plot_c(log.m, main="v:Log", ylab="log10 value", log="y")
-plot_c(ran.dat.m, main="MR", ylab="log10 count", log="y")
+plot_c(ran.dat.m, main="RLE", ylab="log10 count", log="y")
 plot_c(clr.m, main="CLR", ylab="log10 value")
 
 ```
@@ -68,14 +68,14 @@ The ecological literature offers many different transformations for such data, o
 
 - The log transform divides each feature count in a sample by the minimum non-zero count value, then takes the logarithm of the resulting value and adds 1. Counts of 0 are assigned a value of 0 to avoid taking the logarithm of 0.
 
-The MR and CLR transforms are not instantiated in `vegan`, and are described below.
+The RLE and CLR transforms are not instantiated in `vegan`, and are described below.
 
 It is obvious that the Frequency, Hellinger, and Log transformations result in data that badly mis-represents the shape of the actual count data. All other transformations instantiated in the `vegan` package deliver data that is transformed even more extremely.  The log transformation would be suitable \emph{if} the total counts observed after sequencing was directly proportional to the total counts in the enviroment, however, we have seen that this condition cannot be met for high throughput sequencing. Thus, none of these transformations, though widely used, are suitable when analyzing high throughput sequencing data.
 
-The MR and CLR transforms appear to most closely recapture the shape of the original data and appear very similar. We will discuss these below.
+The RLE and CLR transforms appear to most closely recapture the shape of the original data and appear very similar. We will discuss these below.
 
 
-Comparison of 'differential abundance' is problematic for compositional data [@fernandes:2013;@fernandes:2014]. Since the apparent abundance of every value depends on the apparent abundance of every other value, we can get into real difficulties if we are not careful. If we refer back to Figure \ref{fig:transformations}:Counts, and we  compare the relative abundances of features between sample 1 and sample 20, we  observe that only the black feature has changed in absolute abundance and that the count of all other features is unchanged. Note that we would be very wron in our inferences if we use the Frequency, Hellinger or Log transforms, since we would infer that the black feature increased, but that all other features had decreased in abundance. The MR and CLR transformations do a better job of controlling for the interdependence between features. Both transforms have the black feature increasing, but the other features increase or decrease only marginally, and apparently at random.
+Comparison of 'differential abundance' is problematic for compositional data [@fernandes:2013;@fernandes:2014]. Since the apparent abundance of every value depends on the apparent abundance of every other value, we can get into real difficulties if we are not careful. If we refer back to Figure \ref{fig:transformations}:Counts, and we  compare the relative abundances of features between sample 1 and sample 20, we  observe that only the black feature has changed in absolute abundance and that the count of all other features is unchanged. Note that we would be very wron in our inferences if we use the Frequency, Hellinger or Log transforms, since we would infer that the black feature increased, but that all other features had decreased in abundance. The RLE and CLR transformations do a better job of controlling for the interdependence between features. Both transforms have the black feature increasing, but the other features increase or decrease only marginally, and apparently at random.
 
 
 ## Other data transformations
@@ -136,11 +136,11 @@ A related transformation is `rarefaction' or subsampling without replacement to 
 
 Further work found that none of these methods were appropriate, since the read count per sample continued to confound the analyses [@Loven:2012aa]. In other words, the TMM, RPKM, TPM methods \emph{are not scale invariant}.
 
-Thus, the scaling normalization methods were proposed [@White:2009;@Robinson:2010a], reviewed in [@Dillies:2013]. There are several scaling normalizations, but all operate on the common assumption that by normalizing all counts in a sample to a per-sample midpoint value the normalization can impute, or at least approximate, the \emph{number} of each feature in the underlying environment.  The approaches differ largely in how the midpoint is determined. The median of ratios method (MR) is instantiated in DESeq2 (and others), the trimmed mean of M values (TMM) method is used by edgeR (and others), and the Cumulative Sum Scaling (CSS) method is used by metaGenomeSeq [@White:2009] among others. The MR method will be demonstrated and used, but the TMM and CSS methods give substantially similar results, and uses the same basic logic since sample values are linearly scaled by a per-sample feature-wise midpoint.
+Thus, the scaling normalization methods were proposed [@White:2009;@Robinson:2010a], reviewed in [@Dillies:2013]. There are several scaling normalizations, but all operate on the common assumption that by normalizing all counts in a sample to a per-sample midpoint value the normalization can impute, or at least approximate, the \emph{number} of each feature in the underlying environment.  The approaches differ largely in how the midpoint is determined. The median of ratios method called the Relative Log Expression (RLE) is instantiated in DESeq2 (and others), the trimmed mean of M values (TMM) method is used by edgeR (and others), and the Cumulative Sum Scaling (CSS) method is used by metaGenomeSeq [@White:2009] among others. The RLE method will be demonstrated and used, but the TMM and CSS methods give substantially similar results, and use the same basic logic since sample values are linearly scaled by a per-sample feature-wise midpoint; the differences are largely how those midpoints are chosen.
 
-The MR method calculates the ratio of the features to the geometric mean, $\mathrm{g}\vect{f}_{i-}$, of each feature across all samples, and then takes as the normalization factor the median ratio per sample as the scaling factor. Each feature is then divided by the scaling factor to place each sample on an 'equivalent' count scale. The idea is that the MR normalization 'opens' the data from being compositional to being scaled counts. It is impossible to open the data, and while the scaled counts may have some useful properties, we see below that removing  compositional constraints are not among them.
+The RLE method calculates the ratio of the features to the geometric mean, $\mathrm{g}\vect{f}_{i-}$, of each feature across all samples, and then takes as the normalization factor the median ratio per sample as the scaling factor. Each feature is then divided by the scaling factor to place each sample on an 'equivalent' count scale. The idea is that the RLE normalization 'opens' the data from being compositional to being scaled counts. It is impossible to open the data, and while the scaled counts may have some useful properties, we see below that removing  compositional constraints are not among them.
 
-The multi-step normalization MR normalization attempts to normalize for sequencing depth thus 'opening' the data, and proceeeds as in the multistep Eq. \ref{eq:MR}. Here we start with two sample vectors $\vec{\textbf{s}}_1$ and $\vec{\textbf{s}}_2$, and calculate a vector of geometric means of the features $\vec{\textbf{g}}$. Ratio vectors, $\vec{\textbf{r}}_j$ are calculated by dividing the sample vectors by the geometric mean vector, and the median of the ratio vectors is determined. Finally, the sample vectors are divided by the median of the ratio vector for each sample.
+The multi-step normalization RLE normalization attempts to normalize for sequencing depth thus 'opening' the data, and proceeeds as in the multistep Eq. \ref{eq:RLE}. Here we start with two sample vectors $\vec{\textbf{s}}_1$ and $\vec{\textbf{s}}_2$, and calculate a vector of geometric means of the features $\vec{\textbf{g}}$. Ratio vectors, $\vec{\textbf{r}}_j$ are calculated by dividing the sample vectors by the geometric mean vector, and the median of the ratio vectors is determined. Finally, the sample vectors are divided by the median of the ratio vector for each sample.
 
 
 \begin{equation}
@@ -149,15 +149,15 @@ The multi-step normalization MR normalization attempts to normalize for sequenci
 		\vec{\textbf{r}}_j = &\ \vec{\textbf{s}}_j / \vec{\textbf{g}}\\
 		\vec{\textbf{d}}_j = &\ \vec{\textbf{s}}_j / Md(\vec{\textbf{r}}_j)\\
 	\end{aligned}
-\label{eq:MR}
+\label{eq:RLE}
 \end{equation}
 
 A sample calculation is given in Table \ref{tab:des}, and we can see that the median ratio for each sample $\vec{\textbf{r}}_j$  samples may be different in each sample, and that the particular feature that is the median may itself be different, the median feature is in boldface in the table. Thus, by construction the feature values in each sample can be scaled by different amounts in each sample.
 
-The MR normalization has the attractive property that it approaches the shape of the underlying count data when the dataset is relatively well behaved. We can see this in panel MR in Figure \ref{fig:transformations}. Here, only the extreme samples at points 15-20 diverge strongly from the values observed in the underlying count data. The MR normalization is now widely used in both the 16S rRNA gene sequencing field [REF] and in the RNA-seq field [REF]. However, we can see that the normalization fails at the margin without warning. Thus, we can never be sure if we are comparing values correctly. An additional issue is that the MR normalization is not compositionally appropriate, and even though it (nearly) recapitulates the overall shape of the data, it does not recapitulate the \emph{relationships} between the data. Nevertheless, the MR transformation may be useful in ideal, or nearly ideal cases if interpreted carefully.
+The RLE normalization has the attractive property that it approaches the shape of the underlying count data when the dataset is relatively well behaved. We can see this in panel RLE in Figure \ref{fig:transformations}. Here, only the extreme samples at points 15-20 diverge strongly from the values observed in the underlying count data. The RLE normalization is now widely used in both the 16S rRNA gene sequencing field [REF] and in the RNA-seq field [REF]. However, we can see that the normalization fails at the margin without warning. Thus, we can never be sure if we are comparing values correctly. An additional issue is that the RLE normalization is not compositionally appropriate, and even though it (nearly) recapitulates the overall shape of the data, it does not recapitulate the \emph{relationships} between the data. Nevertheless, the RLE transformation may be somewhat useful in ideal, or nearly ideal datasets if interpreted carefully.
 
 \begin{table}[!h]
-\caption{Example calculation of MR normalization}
+\caption{Example calculation of RLE normalization}
 \centering
 \resizebox{\columnwidth}{!}{%
 \begin{tabular}{c r r r r r r r}
@@ -173,7 +173,71 @@ F5 & 500 & 1500 & 866.0 & 0.58 & 1.73 & 406.5 & 1851.9\\ \hline
 \label{tab:des}
 \end{table}
 
+It is worth pointing out that the RLE normalization (and the TMM and CSS normalizations) can substantially change our interpretation of the data.
 
+```{r block-malpractice, echo=F}
+
+###########
+# variation in probabilistic sampling
+
+
+# 95% CI for margin of error for proportions from a random samples
+moe <- function(prop, size){
+    err <- round(1.96 * sqrt((prop * (1-prop))/size), 3)
+    return(c(err, prop, paste(prop-err, "-", prop+err)) )
+}
+
+
+rdirichlet<-function(n,a)
+  ## pick n random deviates from the Dirichlet function with shape parameters a
+{
+    if(length(n) > 1 || length(n) < 1 || n < 1) stop("n must be a single positive integer value")
+    if(length(a) < 2) stop("a must be a vector of numeric value")
+    n <- floor(n)
+    l<-length(a);
+    x<-matrix(rgamma(l*n,a),ncol=l,byrow=TRUE);
+    # sm<-x%*%rep(1,l);
+    x/rowSums(x);
+}
+
+des.norm <- function(data){ # x is a matrix with samples by column
+	# calculate the feature-wise geometric mean
+	G <- apply(data, 1, function(x) exp(mean(log(x)))  )
+	# calculate the ratio between G and all features
+	rat <- apply(data, 2, function(x) x/G)
+	# get the median ratio per sample
+	norm <- apply(rat, 2, median)
+
+	# scale each read by the median ratio per sample
+	norm.counts <- t(apply(data, 1, function(x) x/norm))
+	return(norm.counts)
+}
+
+
+# so lets look at our margin of error for a poll where the split is 20% for, 80% anti
+# moe for a poll of 1000
+moe(0.2, 1000)
+# 0.025 so 95% CI for data are betwen 0.175 and 0.225
+moe(0.2, 100)
+# 0.078 CI 0.122 - 0.278
+
+# now lets say that there are 2 different reasons that someone could be anti, but only one reason to be pro
+# does this change the moe on pro? no
+
+# lets do 4 polls of different sizes and of course answers
+moe(0.25,250)
+# 0.054 0.196-0.304
+moe(0.19, 2000)
+# 0.017 CI 0.173-0.207
+
+# DESeq normalization
+abcd <- matrix(data=c(200,800,20,80,62.5,187.5,380,1620), nrow=2, ncol=4, byrow=F)
+apply(abcd,2, function(x) des.norm(x))
+apply(des.norm(abcd), 2, function(x) moe(x/sum(x), sum(x)) )
+
+col=1
+abcd[1,col]/sum(abcd[,col]) - quantile(rdirichlet(100000, abcd[,col])[,1], probs=c(0.025,0.0975))
+```
 ## Log-ratio transformations
 Aitchison [-@Aitchison:1986] introduced the concept of the log-ratio transformation.
 
@@ -217,14 +281,14 @@ The ilr and clr are directly comparable in a two important ways: First, the dist
 
 Log-ratio values of any type do not need to be normalized since the total sum is a term in both the numerator and the denominator. Thus, the same log-ratio value will be obtained for the vector of raw read counts, or the vector of normalized read counts, or the vector of proportions calculated from the counts. Thus, log-ratios are said to be equivalence classes such that there is no information in the total count (aside from precision) [@barcelo:2001].
 
-Attempts to `open' the data, such as with the MR transformation,  are doomed to failure because the data cannot be moved from the simplex to Euclidian space. The total count delivered by the sequencing instrument is a function of the instrument and not the number of molecules sampled from the environment, thus the total count has no geometric meaning. If the data are collected in such a way that the total count represents the actual count in the environment, then the data are not compositional and issues regarding compositional data disappear. However, at present all sequencing platforms deliver a fixed-sum, random sample of the proportion of molecules in the environment. Note that this does not mean that the read depth is irrelevant since more reads for a sample translate into greater precision when estimating the proportions [@fernandes:2013].
+Attempts to `open' the data, such as with the RLE transformation,  are doomed to failure because the data cannot be moved from the simplex to Euclidian space. The total count delivered by the sequencing instrument is a function of the instrument and not the number of molecules sampled from the environment, thus the total count has no geometric meaning. If the data are collected in such a way that the total count represents the actual count in the environment, then the data are not compositional and issues regarding compositional data disappear. However, at present all sequencing platforms deliver a fixed-sum, random sample of the proportion of molecules in the environment. Note that this does not mean that the read depth is irrelevant since more reads for a sample translate into greater precision when estimating the proportions [@fernandes:2013].
 
 ## Comparison of transformations
 
 ### A benchmark random dataset
 
 I now set up an even simpler random dataset, composed of only four features (T, L, R, A) and 50 random samples with mean values of 100 tigers, 10000 ladybugs, 1000 Rabbits and 5 space aliens drawn from a Normal distibution---although a random uniform distribution or any other distribution will give the qualitatively the same results. I am not attempting to mimic a distribution found in a real dataset, but instead desire to show the general properties of the transformations with a simple to understand dataset. I use the dataset to show how the most common transforms compare when calculated on simulated counts, on proportions (i.e. as relative abundances after sequencing
-), or MR or CLR transformed data
+), or RLE or CLR transformed data
 
 
 ```{r R-block-TLRA, results="show", echo=TRUE, message=F, error=F, warnings=F}
@@ -239,14 +303,14 @@ ran.dat[ran.dat <=0 ] <- 0.1
 
 The first row in Figure \ref{fig:r-random} shows the relationships between three features in the benchmark dataset as counts. We can see that the features are randomly normally distributed and uncorrelated in the scatter plots of counts. Most tools attempt to infer something about this numerical dataset using the dataset after sequencing, which we have seen does not deliver counts, but delivers a fixed sum dataset. For a proper analysis after sequencing, the data transforms must  be linearly related in some way to this underlying count data from the environment.
 
-```{r r-random, fig.height=16, fig.width=9.6, results="show", echo=FALSE, message=F, error=F, warnings=F,fig.cap="Scatter plots of Ladybugs (L) vs. Tigers (T), Rabbits (R) vs. Ladybugs and Aliens (A) vs. Rabbits for simulated random Normal data. Plots are shown for the actual count data, for the proportional data, and for the proportional data after the MR or CLR transformation."}
+```{r r-random, fig.height=16, fig.width=9.6, results="show", echo=FALSE, message=F, error=F, warnings=F,fig.cap="Scatter plots of Ladybugs (L) vs. Tigers (T), Rabbits (R) vs. Ladybugs and Aliens (A) vs. Rabbits for simulated random Normal data. Plots are shown for the actual count data, for the proportional data, and for the proportional data after the RLE or CLR transformation."}
 
 ran.dat.prop <- t(apply(ran.dat, 1, function(x) x/sum(x)))
-ran.dat.DM <- t(des.norm(t(ran.dat.prop)))
+ran.dat.RLE <- t(des.norm(t(ran.dat.prop)))
 ran.dat.clr <- t(apply(ran.dat.prop, 1, function(x) log(x) - mean(log(x))))
 dist.ran.dat <- as.matrix(dist(ran.dat, method="euclidian"))
 ran.dat.num.clr <-  t(apply(ran.dat, 1, function(x) log(x) - mean(log(x))))
-ran.dat.DM.clr <-  t(apply(ran.dat.DM, 1, function(x) log(x) - mean(log(x))))
+ran.dat.RLE.clr <-  t(apply(ran.dat.RLE, 1, function(x) log(x) - mean(log(x))))
 
 par(mfrow=c(4,3), pch=19, col=rgb(0,0,0,0.5), cex=1.2, cex=1.2, mar=c(4,4,4,0.5))
 
@@ -261,12 +325,12 @@ plot(ran.dat.prop[,"L"],ran.dat.prop[,"R"],
 plot(ran.dat.prop[,"R"],ran.dat.prop[,"A"],
     xlab="R.p", ylab="A.p")
 
-plot(ran.dat.DM[,"T"],ran.dat.DM[,"L"],
-    xlab="T.MR", ylab="L.MR")
-plot(ran.dat.DM[,"L"],ran.dat.DM[,"R"],
-    xlab="L.MR", ylab="R.MR", main="MR")
-plot(ran.dat.DM[,"R"],ran.dat.DM[,"A"],
-    xlab="R.MR", ylab="A.MR")
+plot(ran.dat.RLE[,"T"],ran.dat.RLE[,"L"],
+    xlab="T.RLE", ylab="L.RLE")
+plot(ran.dat.RLE[,"L"],ran.dat.RLE[,"R"],
+    xlab="L.RLE", ylab="R.RLE", main="RLE")
+plot(ran.dat.RLE[,"R"],ran.dat.RLE[,"A"],
+    xlab="R.RLE", ylab="A.RLE")
 
 plot(ran.dat.clr[,"T"],ran.dat.clr[,"L"],
     xlab="T.CLR", ylab="L.CLR")
@@ -279,7 +343,7 @@ plot(ran.dat.clr[,"R"],ran.dat.clr[,"A"],
 
 The second row in Figure \ref{fig:r-random} shows the same pairs of features in the same data after being converted to proportions: note that this is exactly comparable to sequencing and being constrained by an arbitrary sum as discussed in Chapter 5. Here we see that the the proportional data have a radically different internal structure. The two most relatively abundant features, R and L, which are uncorrelated in the actual data are now almost perfectly negatively correlated as proportions, R.p vs L.p. This is because the proportional data are now not real numbers, but are instead are constrained by the arbitrary sum of 1: \emph{the data are now compositional data}.
 
-Recall from Figure \ref{fig:transformations} that the MR and CLR transformations \emph{appeared} to restore most of the underlying structure to the data. Using this simplified dataset, we can see that this was an illusion. The MR transformation shown in row 3 of Figure \ref{fig:r-random} seems to fix the problem caused by converting the data from numbers to proportions since the points are more spread out. However, closer inspection shows that this is not the case: compare L.MR vs T.MR in row 3 with L vs T in row 1. It should be clear that the MR transformation simply \emph{spreads the points out} without restoring the actual structure of the underlying count data. This is unfortunate and misleading since the stated purpose of the MR transformation is to recover the underlying count structure of the environmental sample after sequencing [REFS]. In the absence of a solid theoretical foundation, it is difficult to say exactly how we should interpret these MR-transformed data. The above MR plots were generated on the proportional dataset, however only the scale of the \emph{MR} axes would change if the MR normalization was conducted on the original numerical data. Thus, conclusions derived from data that are MR-normalized actually tell us little about the underlying counts from enviroment---\emph{despite the pervasive use of this, and related, transformations in the biomedical literature}.
+Recall from Figure \ref{fig:transformations} that the RLE and CLR transformations \emph{appeared} to restore most of the underlying structure to the data. Using this simplified dataset, we can see that this was an illusion. The RLE transformation shown in row 3 of Figure \ref{fig:r-random} seems to fix the problem caused by converting the data from numbers to proportions since the points are more spread out. However, closer inspection shows that this is not the case: compare L.RLE vs T.RLE in row 3 with L vs T in row 1. It should be clear that the RLE transformation simply \emph{spreads the points out} without restoring the actual structure of the underlying count data. This is unfortunate and misleading since the stated purpose of the RLE transformation is to recover the underlying count structure of the environmental sample after sequencing [REFS]. In the absence of a solid theoretical foundation, it is difficult to say exactly how we should interpret these RLE-transformed data. The above RLE plots were generated on the proportional dataset, however only the scale of the \emph{RLE} axes would change if the RLE normalization was conducted on the original numerical data. Thus, conclusions derived from data that are RLE-normalized actually tell us little about the underlying counts from enviroment---\emph{despite the pervasive use of this, and related, transformations in the biomedical literature}.
 
 The last row in Fig \ref{fig:r-random} shows the proportional data transformed by the clr transformation. Again, we see that the transformed data are not similar to the actual count data. Thus, conclusions made on clr-transformed data also cannot be directly related to the count values of the actual dataset. So at this point we have a conundrum: no transformation on post-sequencing data recapitulates the pre-sequencing data that we want to examine.
 
@@ -287,13 +351,13 @@ The last row in Fig \ref{fig:r-random} shows the proportional data transformed b
 
 We are now in a position to realize that recovering the actual counts in the environment from the post-sequencing data is impossible without additional information. Some advocate the use of a spike-in of known numbers of a molecule that can be used to normalize. However, in practice one would need to include a sufficient number of these molecules so that the random sampling error was very small, thus decreasing the sequencing depth of the molecules being measured in the experiment. In addition, practical examination of spike-in experiments indicates that there is considerable variation in the spike-in molecules that is attributed to batch effects [BARTON], making their use suspect.
 
-Two transforms, the MR and clr transforms come closest to recapitulating the overall shape of the univariate data as shown in Figure \ref{fig:transformations}, and so appear to be promising. However, both transformations (and all others) fail to recapitulate the multivariate nature of the data as shown in Figure \ref{fig:r-random}. There is a way forward as long as we are willing to change our point of view from absolute numbers to relative values.
+Two transforms, the RLE and clr transforms come closest to recapitulating the overall shape of the univariate data as shown in Figure \ref{fig:transformations}, and so appear to be promising. However, both transformations (and all others) fail to recapitulate the multivariate nature of the data as shown in Figure \ref{fig:r-random}. There is a way forward as long as we are willing to change our point of view from absolute numbers to relative values.
 
-Interestingly, both the MR transform and the clr transform are based on ratios. These tranforms share the insight that we need to examine the abundance of a feature relative to the abundance of some other feature or group of features. The MR transform uses as the reference a median value calculated as in Equation \ref{eq:MR}. Two aspects of this normalization are troubling. First, that the midpoint feature chosen as the reference is likely different for each sample. Second, that the values are scaled and interpreted as counts, even though the transformed values are now ratios. Third, that the transformed values will be different if the features have a different scale; i.e., if the features are multiplied by a constant.
+Interestingly, both the RLE transform and the clr transform are based on ratios. These tranforms share the insight that we need to examine the abundance of a feature relative to the abundance of some other feature or group of features. The RLE transform uses as the reference a median value calculated as in Equation \ref{eq:RLE}. Two aspects of this normalization are troubling. First, that the midpoint feature chosen as the reference is likely different for each sample. Second, that the values are scaled and interpreted as counts, even though the transformed values are now ratios. Third, that the transformed values will be different if the features have a different scale; i.e., if the features are multiplied by a constant.
 
 In contrast, the clr tranform has a firm theoretical foundation based on compositional data analysis [@Aitchison:1986]. Data transformed by the clr are the same whether they are counts, or proportions or are multiplied by an arbitrary constant: they are what is called 'scale invariant'. We can demonstrate that the clr tranform provides the same relative information on the actual count data by transforming the count data, or the proportion data by the clr and plotting the result as shown in Figure \ref{fig:r-ratios}. Further, clr-transformed data are explicitly interpreted as the ratio between the count (or proportion) of a feature and the geometric mean count (or proportion) of all features. We can further modify the clr tranformation to use only those features that have particular properties (such as non-0, low variance, etc) in all samples [JIA] to avoid including features with a count of 0 in the denominator. However, in this case we must keep in mind to interpret the transformed values as the ratio between the feature and the denominator.
 
-```{r r-ratios, fig.height=12, fig.width=15, results="show", echo=FALSE, message=F, error=F, warnings=F,fig.cap="\\label{R_random} Plot of Ladybugs vs. Tigers, Rabbits vs. Ladybugs and Aliens vs. Rabbits for simulated random Normal data after the MR normalization (top row). Plot of input numerical and MR normalized data for Tigers, Ladybugs and Rabbits (bottom row)"}
+```{r r-ratios, fig.height=12, fig.width=15, results="show", echo=FALSE, message=F, error=F, warnings=F,fig.cap="\\label{R_random} Plot of Ladybugs vs. Tigers, Rabbits vs. Ladybugs and Aliens vs. Rabbits for simulated random Normal data after the RLE normalization (top row). Plot of input numerical and RLE normalized data for Tigers, Ladybugs and Rabbits (bottom row)"}
 
 ran.count.clr <- t(apply(ran.dat, 1, function(x) log(x) - mean(log(x))))
 

@@ -92,11 +92,11 @@ The Aitchison distance is the Euclidian distance calculated on the log-ratio tra
 
 ## Graphical demonstration of distance pathologies
 
-I return now to the simple the Ladybugs (L), Tigers (T), Rabbits (R), and Aliens (A) dataset and examine the distance between samples using different metrics. Recall that we desire to find a distance metric that when used on the compositional data obtained after sequencing tells us something about the count data from the environment before sequencing. Thus, we should obtain a linear relationship between the count and compositional data if the distance metric is generally useful, and we compare the counts to both simple proportions and proportions after the DM transformation for all distance metrics.
+I return now to the simple the Ladybugs (L), Tigers (T), Rabbits (R), and Aliens (A) dataset and examine the distance between samples using different metrics. Recall that we desire to find a distance metric that when used on the compositional data obtained after sequencing tells us something about the count data from the environment before sequencing. Thus, we should obtain a linear relationship between the count and compositional data if the distance metric is generally useful, and we compare the counts to both simple proportions and proportions after the RLE transformation for all distance metrics.
 
 We first examine the simple Euclidian and Manhattan distances.
 
-```{r R-block-dist, fig.height=17, fig.width=15, results="show", echo=FALSE, message=F, error=F, warnings=F, out.width="80%", fig.align ='center', fig.cap="Scatter plot of the distances computed on numeric, proportional and DM-normalized data. The X-axis has the distances computed on the original numeric data, and the Y-axis has the distances computed on the same data converted to proportions, or when the proportions are count-normalized using the DM normalization. The distances for the count data and the proportions or the DM normalized data are obviously not linearly related."}
+```{r R-block-dist, fig.height=17, fig.width=15, results="show", echo=FALSE, message=F, error=F, warnings=F, out.width="80%", fig.align ='center', fig.cap="Scatter plot of the distances computed on numeric, proportional and RLE-normalized data. The X-axis has the distances computed on the original numeric data, and the Y-axis has the distances computed on the same data converted to proportions, or when the proportions are count-normalized using the RLE normalization. The distances for the count data and the proportions or the RLE normalized data are obviously not linearly related."}
 
 # calculate all distances
 # reference distances on the count data
@@ -113,12 +113,12 @@ dist.ran.dat.prop.BC <- as.matrix(vegdist(ran.dat.prop, method="bray"))
 dist.ran.dat.prop.JSD <- as.matrix(dist.JSD(t(ran.dat.prop)))
 dist.ran.dat.prop.clr <- as.matrix(vegdist(ran.dat.clr, method="euclidian"))
 
-# distances on the DM transform of proportions
-dist.ran.dat.DM.BC <- as.matrix(vegdist(ran.dat.DM, method="bray"))
-dist.ran.dat.DM <- as.matrix(dist(ran.dat.DM, method="euclidian"))
-dist.ran.dat.DM.MAN <- as.matrix(dist(ran.dat.DM, method="manhattan"))
-dist.ran.dat.DM.JSD <- as.matrix(dist.JSD(t(ran.dat.DM)))
-dist.ran.dat.DM.clr <- as.matrix(vegdist(ran.dat.DM.clr, method="euclidian"))
+# distances on the RLE transform of proportions
+dist.ran.dat.RLE.BC <- as.matrix(vegdist(ran.dat.RLE, method="bray"))
+dist.ran.dat.RLE <- as.matrix(dist(ran.dat.RLE, method="euclidian"))
+dist.ran.dat.RLE.MAN <- as.matrix(dist(ran.dat.RLE, method="manhattan"))
+dist.ran.dat.RLE.JSD <- as.matrix(dist.JSD(t(ran.dat.RLE)))
+dist.ran.dat.RLE.clr <- as.matrix(vegdist(ran.dat.RLE.clr, method="euclidian"))
 
 
 par(mfrow=c(2,2), pch=19, col=rgb(0,0,0,0.5),
@@ -131,12 +131,12 @@ plot(dist.ran.dat.MAN[1,], dist.ran.dat.prop.MAN[1,],
     xlab="Numeric", ylab="Proportional",
     main="Manhattan")
 
-plot(dist.ran.dat[1,], dist.ran.dat.DM [1,],
-    xlab="Numeric", ylab="DM normalized",
-    main="Euclidian DM")
-plot(dist.ran.dat.MAN[1,], dist.ran.dat.DM.MAN[1,],
-    xlab="Numeric", ylab="DM normalized",
-    main="Manhattan DM")
+plot(dist.ran.dat[1,], dist.ran.dat.RLE [1,],
+    xlab="Numeric", ylab="RLE normalized",
+    main="Euclidian RLE")
+plot(dist.ran.dat.MAN[1,], dist.ran.dat.RLE.MAN[1,],
+    xlab="Numeric", ylab="RLE normalized",
+    main="Manhattan RLE")
 ```
 
 The Euclidian and Manhattan distances are generally correlated, but not identical, when comparing distances in the original numeric data, or when the data are converted to proportions. However, the distances between samples are very different when comparing the numerical and proportional data. This tells us that the inferences we make from sequencing data can not translate to inferences about the actual abundances of features in the environment, but only to their relative abundances after sequencing. So which distance metric should we use for proportional data? It turns out that neither are suitable because these distance metrics assume linear differences between features, and this is not true in proportional data [@Aitchison:1986].
@@ -149,7 +149,7 @@ Plotting three of the possible combinations, we can see that the features are es
 
 The Bray-Curtis dissimilarity is a modified Manhattan distance normalized to range between 0 and 1, thus the Manhattan distance and the Bray-Curtis (BC) distances are essentially linearly related changing only the scale of the measure. One quirk of the BC dissimilarity is that it cannot be calculated if any of the values in the matrix are less than, making it incompatible with logarithmic or log-ratio transformed data.
 
-```{r R-block-bray, fig.height=14, fig.width=12, results="show", echo=FALSE, message=F, error=F, warnings=F, out.width="80%", fig.align ='center', fig.cap="Scatter plot of Bray-Curtis dissimilarities, or Jensen-Shannon divergence  of numerical vs. proportional and DM normalized data."}
+```{r R-block-bray, fig.height=14, fig.width=12, results="show", echo=FALSE, message=F, error=F, warnings=F, out.width="80%", fig.align ='center', fig.cap="Scatter plot of Bray-Curtis dissimilarities, or Jensen-Shannon divergence  of numerical vs. proportional and RLE normalized data."}
 
 par(mfrow=c(2,2), pch=19, col=rgb(0,0,0,0.5),
     cex=1.5, cex.lab=1.5)
@@ -157,15 +157,15 @@ par(mfrow=c(2,2), pch=19, col=rgb(0,0,0,0.5),
 plot(dist.ran.dat.BC[1,], dist.ran.dat.prop.BC[1,],
     xlab="Numeric", ylab="Proportional",
     main="Bray-Curtis")
-plot(dist.ran.dat.BC[1,], dist.ran.dat.DM.BC[1,],
-    xlab="Numeric", ylab="DM normalized",
-    main="Bray-Curtis DM")
+plot(dist.ran.dat.BC[1,], dist.ran.dat.RLE.BC[1,],
+    xlab="Numeric", ylab="RLE normalized",
+    main="Bray-Curtis RLE")
 plot(dist.ran.dat.JSD[1,], dist.ran.dat.prop.JSD[1,],
     xlab="Numeric", ylab="Proportional",
     main="Jensen-Shannon")
-plot(dist.ran.dat.JSD[1,], dist.ran.dat.DM.JSD[1,],
-    xlab="Numeric", ylab="DM normalized",
-    main="Jensen-Shannon DM")
+plot(dist.ran.dat.JSD[1,], dist.ran.dat.RLE.JSD[1,],
+    xlab="Numeric", ylab="RLE normalized",
+    main="Jensen-Shannon RLE")
 
 ```
 
@@ -175,7 +175,7 @@ plot(dist.ran.dat.JSD[1,], dist.ran.dat.DM.JSD[1,],
 
 The blah blah blah
 
-```{r R-clr-plot, fig.height=7, fig.width=12, results="show", echo=FALSE, message=F, error=F, warnings=F, out.width="80%", fig.align ='center', fig.cap="Scatter plot of Euclidian distances of the clr transformed numeric or proportional data. As above, DM indicates proportional data scaled by the DM normalization."}
+```{r R-clr-plot, fig.height=7, fig.width=12, results="show", echo=FALSE, message=F, error=F, warnings=F, out.width="80%", fig.align ='center', fig.cap="Scatter plot of Euclidian distances of the clr transformed numeric or proportional data. As above, RLE indicates proportional data scaled by the RLE normalization."}
 
 
 par(mfrow=c(1,2), pch=19, col=rgb(0,0,0,0.5),
@@ -184,14 +184,14 @@ par(mfrow=c(1,2), pch=19, col=rgb(0,0,0,0.5),
 plot(dist.ran.dat.clr[1,], dist.ran.dat.prop.clr[1,],
     xlab="Numeric", ylab="Proportional",
     main="Euclidian clr")
-plot(dist.ran.dat.clr[1,], dist.ran.dat.DM.clr[1,],
-    xlab="Numeric", ylab="DM normalized",
-    main="Euclidian clr DM")
+plot(dist.ran.dat.clr[1,], dist.ran.dat.RLE.clr[1,],
+    xlab="Numeric", ylab="RLE normalized",
+    main="Euclidian clr RLE")
 ```
 
 \texttt{plot\_ly(x=ran.dat[,"L"], y=ran.dat[,"T"], z=ran.dat[,"R"])}
 
 \texttt{plot\_ly(x=ran.dat.prop[,"L"], y=ran.dat.prop[,"T"], z=ran.dat.prop[,"R"])}
 
-\texttt{plot\_ly(x=ran.dat.DM[,"L"], y=ran.dat.DM[,"T"], z=ran.dat.DM[,"R"])}
+\texttt{plot\_ly(x=ran.dat.RLE[,"L"], y=ran.dat.RLE[,"T"], z=ran.dat.RLE[,"R"])}
 
