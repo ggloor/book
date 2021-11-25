@@ -154,7 +154,7 @@ The multi-step normalization RLE normalization attempts to normalize for sequenc
 
 A sample calculation is given in Table \ref{tab:des}, and we can see that the median ratio for each sample $\vec{\textbf{r}}_j$  samples may be different in each sample, and that the particular feature that is the median may itself be different, the median feature is in boldface in the table. Thus, by construction the feature values in each sample can be scaled by different amounts in each sample.
 
-The RLE normalization has the attractive property that it approaches the shape of the underlying count data when the dataset is relatively well behaved. We can see this in panel RLE in Figure \ref{fig:transformations}. Here, only the extreme samples at points 15-20 diverge strongly from the values observed in the underlying count data. The RLE normalization is now widely used in both the 16S rRNA gene sequencing field [REF] and in the RNA-seq field [REF]. However, we can see that the normalization fails at the margin without warning. Thus, we can never be sure if we are comparing values correctly. An additional issue is that the RLE normalization is not compositionally appropriate, and even though it (nearly) recapitulates the overall shape of the data, it does not recapitulate the \emph{relationships} between the data. Nevertheless, the RLE transformation may be somewhat useful in ideal, or nearly ideal datasets if interpreted carefully.
+The RLE normalization has the attractive property that it approaches the shape of the underlying count data when the dataset is relatively well behaved. In this way it is similar to the CLR tranform. We can see this in panel RLE in Figure \ref{fig:transformations}. Here, only the extreme samples at points 15-20 diverge strongly from the values observed in the underlying count data. The RLE normalization is now widely used in both the 16S rRNA gene sequencing field [REF] and in the RNA-seq field [REF]. However, we can see that the normalization fails at the margin without warning. Thus, we can never be sure if we are comparing values correctly. An additional issue is that the RLE normalization is not compositionally appropriate, and even though it (nearly) recapitulates the overall shape of the data, it does not recapitulate the \emph{relationships} between the data across samples. Nevertheless, the RLE transformation may be somewhat useful in ideal, or nearly ideal datasets if interpreted carefully.
 
 \begin{table}[!h]
 \caption{Example calculation of RLE normalization}
@@ -173,46 +173,33 @@ F5 & 500 & 1500 & 866.0 & 0.58 & 1.73 & 406.5 & 1851.9\\ \hline
 \label{tab:des}
 \end{table}
 
-It is worth pointing out that the RLE normalization (and the TMM and CSS normalizations) can substantially change our interpretation of the data.
+What we see in this example is that the basis of the comparison (the denominator chosen) can be different for each sample. Thus, while there is some similarity to the CLR tranform, the RLE is expected to be generally less stable because the CLR uses the geometric mean of a basket of features to determine the basis. Thus, it is worth pointing out that the RLE normalization (and the TMM and CSS normalizations) can substantially change our interpretation of the data. As one example, the RLE  and other normaliztions obliterate our ability to determine confidence intervals for our estimates.
 
-```{r block-malpractice, echo=F}
+\begin{table}[!h]
+\caption{Margin of error with RLE normalizations}
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{c r r r r }
+\hline
+Count & data size & RLE? & size & MOE \\ \hline \hline
+400 & 2000 & No & 2000 & `r moe(0.2, 2000)[3]`\\
+200 & 1000 & No & 1000 & `r moe(0.2, 1000)[3]`\\
+50 & 250 & No & 250 & `r moe(0.2, 250)[3]`\\
+20 & 100 & No & 100 & `r moe(0.2, 100)[3]`\\
+400 & 2000 & Yes & 472.8 & `r moe(0.2, 472.8)[3]`\\
+200 & 1000 & Yes & 472.8 & `r moe(0.2, 472.8)[3]`\\
+50 & 250 & Yes & 472.8 & `r moe(0.2, 472.8)[3]`\\
+20 & 100 & Yes & 472.8 & `r moe(0.2, 472.8)[3]`\\ \hline
+\end{tabular}
+}
+\label{tab:des}
+\end{table}
+
+
+```{r block-malpractice, eval=F, echo=F}
 
 ###########
 # variation in probabilistic sampling
-
-
-# 95% CI for margin of error for proportions from a random samples
-moe <- function(prop, size){
-    err <- round(1.96 * sqrt((prop * (1-prop))/size), 3)
-    return(c(err, prop, paste(prop-err, "-", prop+err)) )
-}
-
-
-rdirichlet<-function(n,a)
-  ## pick n random deviates from the Dirichlet function with shape parameters a
-{
-    if(length(n) > 1 || length(n) < 1 || n < 1) stop("n must be a single positive integer value")
-    if(length(a) < 2) stop("a must be a vector of numeric value")
-    n <- floor(n)
-    l<-length(a);
-    x<-matrix(rgamma(l*n,a),ncol=l,byrow=TRUE);
-    # sm<-x%*%rep(1,l);
-    x/rowSums(x);
-}
-
-des.norm <- function(data){ # x is a matrix with samples by column
-	# calculate the feature-wise geometric mean
-	G <- apply(data, 1, function(x) exp(mean(log(x)))  )
-	# calculate the ratio between G and all features
-	rat <- apply(data, 2, function(x) x/G)
-	# get the median ratio per sample
-	norm <- apply(rat, 2, median)
-
-	# scale each read by the median ratio per sample
-	norm.counts <- t(apply(data, 1, function(x) x/norm))
-	return(norm.counts)
-}
-
 
 # so lets look at our margin of error for a poll where the split is 20% for, 80% anti
 # moe for a poll of 1000
@@ -259,6 +246,8 @@ The alr is the simply the elements of the sample vector divided by a presumed in
 
 This is similar to the concept used in quantitative PCR, where the relative abundance of the feature of interest is divided by the relative abundance of a (presumed) constant `housekeeping' feature. Of course there are two major drawbacks. First, that the experimentalist's knowledge of which, if any, features are invariant is necessarily incomplete. Second, is that the choice of the (presumed) invariant feature has a large effect on the result if the presumed invariant feature is not invariant, or if it is correlated with any other features in the dataset. Interestingly, an early proposal was to use the geometric mean of a number of internal controls [@Vandesompele:2002aa], leading to the next transformation.
 
+The ALR is similar to the RLE except that the basis is chosen beforehand and may be based on a-priori information.
+
 ### The centered log-ratio transformation.
 
 The clr is performed by taking the logarithm of the the ratio between the count value for each part and the geometric mean count: i.e., for D features in sample vector $\vect{s} = [s_1, s_2, s_3, \ldots s_D]$:
@@ -269,9 +258,9 @@ The clr is performed by taking the logarithm of the the ratio between the count 
 
 where $g\vect{s} = \sqrt[D]{x_1 \cdot x_2 \cdot ... \cdot x_D}$, the geometric mean of $\vec{\textbf{x}}$.
 
-The clr transformation is formally equivalent to a matrix of all possible pairwise ratios, but is a more tractable form.
+The clr transformation is formally equivalent to a matrix of all possible pairwise ratios, but is a more tractable form. Here we are using a basket of features for the basis, not a single feature.
 
-The clr transform is scale invariant because the same clr values are obtained from the raw counts and from the table of counts after conversion to proportions. The clr transform is sub-compositionally dominant [@pawlowsky2015modeling]. Thus, the clr transform fulfils the
+The clr transform is scale invariant because the same clr values are obtained from the raw counts and from the table of counts after conversion to proportions. The clr transform is sub-compositionally dominant [@pawlowsky2015modeling]. Thus, the clr transform fulfils the basic requirements of compositional data analysis.
 
 The clr is often criticized since it has the property that the sum of the clr vector must equal 0. This constraint causes a singular covariance matrix; i.e., the sum of the covariance matrix is always a constant [@pawlowsky2015modeling]. However the clr has the advantage of being readily interpretable, a value in the vector is its abundance \emph{relative} to a mean value.
 
@@ -279,7 +268,7 @@ The ilr is the final transformation, and is a series of sequential log-ratios be
 
 The ilr and clr are directly comparable in a two important ways: First, the distances between samples computed using an ilr and clr transformation are equivalent. Second, the clr approaches the ilr in other respects as the number of features becomes large. In this respect, the large number of features---hundreds in the case of features, thousands in the case of genes---in a typical experiment works in our favour. Thus, while not perfect, the clr is the most widely used transformation. However, care must be taken when interpreting its outputs since single features must always be interpreted as a ratio between the feature and the denominator used for the clr transformation. The problems of using clr are apparent  when some subcomposition or group of taxa is analysed for further insight since the geometric mean of the subcomposition is not necessarily equal to that of the original composition, leading to potential inconsistencies.
 
-Log-ratio values of any type do not need to be normalized since the total sum is a term in both the numerator and the denominator. Thus, the same log-ratio value will be obtained for the vector of raw read counts, or the vector of normalized read counts, or the vector of proportions calculated from the counts. Thus, log-ratios are said to be equivalence classes such that there is no information in the total count (aside from precision) [@barcelo:2001].
+Log-ratio values of any type do not need to be further normalized since the total sum is a term in both the numerator and the denominator. Likewise the clr value computed from RLE transformed data will be identical to the clr value computed from the raw counts because the RLE does not change the relationships between the features; with the exception of 0 count features. Thus, the same log-ratio value will be obtained for the vector of raw read counts, or the vector of normalized read counts, or the vector of proportions calculated from the counts. Thus, log-ratios are said to be equivalence classes such that there is no information in the total count (aside from precision) [@barcelo:2001].
 
 Attempts to `open' the data, such as with the RLE transformation,  are doomed to failure because the data cannot be moved from the simplex to Euclidian space. The total count delivered by the sequencing instrument is a function of the instrument and not the number of molecules sampled from the environment, thus the total count has no geometric meaning. If the data are collected in such a way that the total count represents the actual count in the environment, then the data are not compositional and issues regarding compositional data disappear. However, at present all sequencing platforms deliver a fixed-sum, random sample of the proportion of molecules in the environment. Note that this does not mean that the read depth is irrelevant since more reads for a sample translate into greater precision when estimating the proportions [@fernandes:2013].
 

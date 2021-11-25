@@ -3,9 +3,8 @@ title: "Compositional analysis of high throughput sequencing data"
 author: "Greg Gloor"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 documentclass: book
-biblio-style: apalike
+csl: [/Users/ggloor/Documents/0_git/csl_styles/apa.csl]
 link-citations: yes
-bibliography: [/Users/ggloor/Library/texmf/bibtex/bib/bibdesk_refs.bib]
 output:
     bookdown::pdf_book:
         keep_tex: true
@@ -14,7 +13,9 @@ output:
         includes:
             in_header: /Users/ggloor/Documents/0_git/templates/header.tex
         pandoc_args: [
-            "-V", "classoption=onecolumn"
+            "-V",
+            "classoption=onecolumn",
+            "--bibliography=/Users/ggloor/Library/texmf/bibtex/bib/bibdesk_refs.bib"
         ]
 ---
 
@@ -74,3 +75,5 @@ library(fclust)
 # About the author {-}
 
 Oh god I'm old and boring
+
+\clearpage

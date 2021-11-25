@@ -56,3 +56,9 @@ dist.JSD <- function(inMatrix, pseudocount=0.000001, ...) {
 	attr(resultsMatrix, "method") <- "dist"
 	return(resultsMatrix)
  }
+
+# 95% CI for margin of error for proportions from a random samples
+moe <- function(prop, size){
+    err <- round(1.96 * sqrt((prop * (1-prop))/size), 3)
+    return(c(err, prop, paste(prop-err, "-", prop+err)) )
+}

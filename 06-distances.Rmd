@@ -149,9 +149,9 @@ Plotting three of the possible combinations, we can see that the features are es
 
 The Bray-Curtis dissimilarity is a modified Manhattan distance normalized to range between 0 and 1, thus the Manhattan distance and the Bray-Curtis (BC) distances are essentially linearly related changing only the scale of the measure. One quirk of the BC dissimilarity is that it cannot be calculated if any of the values in the matrix are less than, making it incompatible with logarithmic or log-ratio transformed data.
 
-```{r R-block-bray, fig.height=14, fig.width=12, results="show", echo=FALSE, message=F, error=F, warnings=F, out.width="80%", fig.align ='center', fig.cap="Scatter plot of Bray-Curtis dissimilarities, or Jensen-Shannon divergence  of numerical vs. proportional and RLE normalized data."}
+```{r R-block-bray, fig.height=7, fig.width=18, results="show", echo=FALSE, message=F, error=F, warnings=F, out.width="80%", fig.align ='center', fig.cap="Scatter plot of Bray-Curtis dissimilarities, or Jensen-Shannon divergence  of numerical vs. proportional and RLE normalized data."}
 
-par(mfrow=c(2,2), pch=19, col=rgb(0,0,0,0.5),
+par(mfrow=c(1,3), pch=19, col=rgb(0,0,0,0.5),
     cex=1.5, cex.lab=1.5)
 
 plot(dist.ran.dat.BC[1,], dist.ran.dat.prop.BC[1,],
@@ -160,12 +160,15 @@ plot(dist.ran.dat.BC[1,], dist.ran.dat.prop.BC[1,],
 plot(dist.ran.dat.BC[1,], dist.ran.dat.RLE.BC[1,],
     xlab="Numeric", ylab="RLE normalized",
     main="Bray-Curtis RLE")
-plot(dist.ran.dat.JSD[1,], dist.ran.dat.prop.JSD[1,],
-    xlab="Numeric", ylab="Proportional",
+#plot(dist.ran.dat.JSD[1,], dist.ran.dat.prop.JSD[1,],
+#    xlab="Numeric", ylab="Proportional",
+#    main="Jensen-Shannon")
+#plot(dist.ran.dat.JSD[1,], dist.ran.dat.RLE.JSD[1,],
+#    xlab="Numeric", ylab="RLE normalized",
+#   main="Jensen-Shannon RLE")
+plot(dist.ran.dat.prop.JSD[1,],dist.ran.dat.RLE.JSD[1,],
+    xlab="Proportional", ylab="RLE",
     main="Jensen-Shannon")
-plot(dist.ran.dat.JSD[1,], dist.ran.dat.RLE.JSD[1,],
-    xlab="Numeric", ylab="RLE normalized",
-    main="Jensen-Shannon RLE")
 
 ```
 
