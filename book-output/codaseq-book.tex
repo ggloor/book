@@ -134,7 +134,7 @@
 \endhead
 title: ``Compositional analysis of high throughput sequencing data'' \\
 author: ``Greg Gloor'' \\
-date: ``24 November, 2021'' \\
+date: ``08 December, 2021'' \\
 documentclass: book \\
 csl: {[}/Users/ggloor/Documents/0\_git/csl\_styles/apa.csl{]} \\
 link-citations: yes \\
@@ -1231,14 +1231,8 @@ When analyzing real datasets with compositional biplots, it is useful to subset 
 \caption{\label{fig:clrprop}Compositions are largely invariant to (rational) subsetting. That is, we get essentially the same answer with all (A-I), and with a subset of the data (-H). Note that feature H has been removed on the right, but the overall conclusions drawn will be similar. In particular, the separation between groups is unchanged and the relationships between those features that remain is nearly identical.}
 \end{figure}
 
-\begin{figure}
-\centering
-\includegraphics{codaseq-book_files/figure-latex/group-1.pdf}
-\caption{\label{fig:group}Samples from compositional data can easily be clustered, and fuzzy clustering is a good option for this {[}@fernandez:2012{]}. We are using the ppclust package for this {[}@fuzzy:2018{]}. Here the synthetic data are shown partitioned into two groups, that separate the two sets well. All samples cluster as expected except for sample 27, which is grouped incorrectly.}
-\end{figure}
-
-\hypertarget{analyzing-a-yeast-transcriptome-dataset}{%
-\section{Analyzing a yeast transcriptome dataset}\label{analyzing-a-yeast-transcriptome-dataset}}
+\hypertarget{clustering-and-analyzing-a-yeast-transcriptome-dataset}{%
+\section{Clustering and analyzing a yeast transcriptome dataset}\label{clustering-and-analyzing-a-yeast-transcriptome-dataset}}
 
 \hspace{2cm}\begin{minipage}[ct]{10cm}
 \parskip=5pt
@@ -1274,11 +1268,11 @@ The complexity of the data makes applying the rules for interpreting composition
 \item
   The proportion of variance explained by the first two principle components is about 31\%. This is not exceptional, however, examination of the scree plot in Fig \ref{fig:yeast-biplot} shows that the first component contains substantially more information than expected at random.
 \item
-  The data samples separate clearly into two natural groups, all labelled SNF* or WT*. This separation is reassuring since the experiment was a knockout of the SNF2 gene (a knockout is a complete removal of the gene from the genome).
+  The data samples separate clearly into two natural groups, all labelled SNF or WT. This separation is reassuring since the experiment was a knockout of the SNF2 gene (a knockout is a complete removal of the gene from the genome).
 \item
   If we examine the genes, we see that the gene for SNF2, YOR290-C, is the single most variable feature in the dataset along component 1 and is at the right side just below the midline.
 \item
-  Both the SNF* and WT* sample groups appear to consist of samples that group together, and samples that are outside the main body of the groups. We can apply an outlier test to determine which if any samples are further from the middle of their group than is reasonable.
+  Both the SNF and WT sample groups appear to consist of samples that group together, and samples that are outside the main body of the groups. We can apply an outlier test to determine which if any samples are further from the middle of their group than is reasonable.
 \item
   There are a large number of features with significant variation on component 2. These variation of these features is likely contributing to the outlier samples.
 \end{enumerate}
@@ -1286,17 +1280,13 @@ The complexity of the data makes applying the rules for interpreting composition
 \hypertarget{finding-outliers}{%
 \subsection{Finding outliers}\label{finding-outliers}}
 
-We can see that there are a number of samples that appear to be outlier samples. For example, should we include SNF2.6 ,which can be found at the top left in Figure \ref{fig:yeast-biplot}, in the analysis or not? One of the messages of the Barton papers {[}@Schurch:2016aa;@Gierlinski:2015aa{]} was that about 10\% of samples, even carefully prepared samples such as these, can be outliers for unknown methodological reasons. I approach outliers by finding those samples that are further from the middle of the group dataset than expected. Outliers are defined as those samples that are further from the middle than the median plus twice the interquartile range of the distances of all samples in the group.
+We can see that there are a number of samples that appear to be outlier samples. For example, should we include SNF2.6 ,which can be found at the top left in Figure \ref{fig:yeast-biplot}, in the analysis or not? One of the messages of the Barton papers {[}@Schurch:2016aa;@Gierlinski:2015aa{]} was that about 10\% of samples, even carefully prepared samples such as these, can be outliers for unknown methodological reasons. I approach outliers by finding those samples that are further from the middle of the group dataset than expected using a robust approach. Outliers are defined as those samples that are further from the median position plus twice the interquartile range of the distances of all samples in the group. This is done across multiple components in a groupwise manner.
 
-The outlier function is instantiated in the CoDaSeq R package, and the example is illustrated for the WT* group, but has been applied to both groups. The graphical intuition for how outliers are identified is shown in Figure \ref{fig:yeast-outlier}. We can see from the compositional biplot of only the WT* samples, that several of them are substantially further from the rest of the samples than might be expected if the samples had homogeneous compositions that differed only by biological and technical variation.
+The outlier function is instantiated in the CoDaSeq R package, and the example is illustrated for the WT* group, but has been applied to both groups. The graphical intuition for how outliers are identified is shown in Figure \ref{fig:yeast-outlier}. We can see from the compositional biplot of only the WT* samples, that several of them are substantially further from the rest of the samples in components 1 and 2 than might be expected if the samples had homogeneous compositions that differed only by biological and technical variation.
 
-We can use the principles of robust statistics to examine this. We expect that if the samples differ only by technical and biological variation then the distances between samples would be distributed approximately evenly around a midpoint. We can extract the samples distances from the midpoint and determine those that are greater than twice the interquartile range from the median distance and those that are within that range. A histogram of these distances can be plotted to observe if all samples excluded are egregiously different from the median (as all are here) or if the samples excluded are at or near the cut line. If the latter case is found there is not strong evidence for removing outlier samples, and this should not be performed.
+We can use the principles of robust statistics to examine this. We expect that if the samples differ only by technical and biological variation then the distances between samples would be distributed approximately Normally around a midpoint. We can extract the samples distances from the midpoint and determine those that are greater than twice the interquartile range from the median distance and those that are within that range on the first several components.
 
-\begin{figure}
-\centering
-\includegraphics{codaseq-book_files/figure-latex/yeast-outlier-1.pdf}
-\caption{\label{fig:yeast-outlier}Identifying and removing outlier samples. The left panel shows the biplot of the WT* samples only. While the majority of the features are in a distinct ball showing little structure note that there is a set of features that projects towards the top-right of the biplot. These features are driving the separation of samples 21, 25, 28 from the rest, and less obviously 34 and 36. The right plot shows the proportion of total distance that each sample contributes to the total distance between all samples. Five samples are identified as contributing a distance that is greater than twice the interquartile range from the other samples and are excluded.}
-\end{figure}
+\includegraphics{codaseq-book_files/figure-latex/yeast-outlier-1.pdf} \includegraphics{codaseq-book_files/figure-latex/yeast-outlier-2.pdf} \includegraphics{codaseq-book_files/figure-latex/yeast-outlier-3.pdf} \includegraphics{codaseq-book_files/figure-latex/yeast-outlier-4.pdf} \includegraphics{codaseq-book_files/figure-latex/yeast-outlier-5.pdf} \includegraphics{codaseq-book_files/figure-latex/yeast-outlier-6.pdf} \includegraphics{codaseq-book_files/figure-latex/yeast-outlier-7.pdf} \includegraphics{codaseq-book_files/figure-latex/yeast-outlier-8.pdf} \includegraphics{codaseq-book_files/figure-latex/yeast-outlier-9.pdf} \includegraphics{codaseq-book_files/figure-latex/yeast-outlier-10.pdf}
 
 \hypertarget{biplot-of-non-outlier-and-outlier-samples-separately}{%
 \subsection{Biplot of non-outlier and outlier samples separately}\label{biplot-of-non-outlier-and-outlier-samples-separately}}
@@ -1315,13 +1305,21 @@ Conversly, we can also examine those samples that were deemed to be outliers. In
 
 We can do additional filtering. Examining the features we see that most contribute little, if anything, to the separation between the two groups. These can be easily identified and removed by filtering out low variance features. CoDaSeq has a function to do this filtering removing those features with total variance in the dataset below the median variance. Note that we change the resolution, but that we recapitulate the dataset with only half or even a quarter of the features. We could do this iteratively as shown in the right hand panel of Figure \ref{fig:yeast-lowvar}. This strategy is a good one to remove nuisance features that confound the analysis of those features that are important for the separation. However, one must be careful that the removal of is just simplifying the data and that removal is not changing the interpretation of the data. As such whenever filtering is performed the original, unfiltered analysis should be included as a reference.
 
+\begin{verbatim}
+## No. corrected values:  13717
+\end{verbatim}
+
+\begin{verbatim}
+## No. corrected values:  6765
+\end{verbatim}
+
 \includegraphics{codaseq-book_files/figure-latex/yeast-lowvar-1.pdf}
 \clearpage
 
 \hypertarget{fuzzy-clustering}{%
 \subsection{FUZZY CLUSTERING}\label{fuzzy-clustering}}
 
-We can plot the samples according to their kmeans cluster membership. For this we are using the fuzzy clustering package ppclust {[}@fuzzy:2018{]}. There is a good introduction to fuzzy clustering in {[}@fernandez:2012{]}. Essentially, we are using a probabilistic (or possibilistic) approach to determine the number of clusters, and the cluster memberships. The vignette for this approach is at: \url{https://cran.r-project.org/web/packages/ppclust/vignettes/fcm.html}. As noted in the workshop, we get two clusters if we choose centers=2 or =3, but the SNF2 and WT groups split if we choose centers=4.
+We can plot the samples according to their kmeans cluster membership. For this we are using the fuzzy clustering package ppclust {[}@fuzzy:2018{]}. There is a good introduction to fuzzy clustering in {[}@fernandez:2012{]}. Essentially, we are using a probabilistic (or possibilistic) approach to determine the number of clusters, and the cluster memberships. The vignette for this approach is at: \url{https://cran.r-project.org/web/packages/ppclust/vignettes/fcm.html}. We get two clusters if we choose centers= 2, and usually three with centers =3, but quite often the SNF2 and WT groups split if we choose centers=4. The cluster memberships are somewhat fluid because of inherent randomness in cluster membership.
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -1344,7 +1342,7 @@ We can plot the samples according to their kmeans cluster membership. For this w
 \end{Shaded}
 
 \begin{verbatim}
-## Warning: ggrepel: 49 unlabeled data points (too many overlaps). Consider
+## Warning: ggrepel: 6346 unlabeled data points (too many overlaps). Consider
 ## increasing max.overlaps
 \end{verbatim}
 

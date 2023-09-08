@@ -6,7 +6,7 @@ documentclass: book
 csl: [/Users/ggloor/Documents/0_git/csl_styles/apa.csl]
 link-citations: yes
 output:
-    bookdown::pdf_book:
+    bookdown::html_book:
         keep_tex: true
         number_sections: FALSE
         toc_depth: 3
@@ -54,12 +54,16 @@ We will need the following R packages, and in addition several functions are def
 4. ALDEx2 (Bioconductor)
 5. propr (CRAN)
 6. Ternary (CRAN)
+7. aIc (CRAN)
+
 
 ```{r libs, results="hide", echo=F, message=F, error=F, warnings=F}
+opar <- par() # get all default parameters
 library(knitr)
 library(bookdown)
 library(vegan)
 library(ALDEx2)
+library(aIc)
 library(zCompositions)
 library(CoDaSeq)
 source("chunk/functions.R")

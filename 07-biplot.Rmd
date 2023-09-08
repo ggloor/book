@@ -130,7 +130,7 @@ biplot(a_g.pcx, var.axes=TRUE, scale=1,
 
 ```
 
-```{r group,  echo=FALSE, results='show', fig.width=5, fig.height=4, warning=FALSE, message=FALSE,fig.cap="Samples from compositional data can easily be clustered, and fuzzy clustering is a good option for this [@fernandez:2012]. We are using the ppclust package for this [@fuzzy:2018]. Here the synthetic data are shown partitioned into two groups, that separate the two sets well. All samples cluster as expected except for sample 27, which is grouped incorrectly."}
+```{r group, eval=FALSE, echo=FALSE, results='hide', fig.width=5, fig.height=4, warning=FALSE, message=FALSE,fig.cap="Samples from compositional data can easily be clustered, and fuzzy clustering is a good option for this [@fernandez:2012]. We are using the ppclust package for this [@fuzzy:2018]. Here the synthetic data are shown partitioned into two groups, that separate the two sets well. All samples cluster as expected except for sample 27, which is grouped incorrectly."}
 
 res.fcm <- fcm(a_i.clr, centers=2)
 
